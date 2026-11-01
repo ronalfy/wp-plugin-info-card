@@ -1,6 +1,6 @@
-=== WP Plugin Info Card - Showcase Beautiful Plugin, Theme, and GitHub Cards Anywhere===
+=== WP Plugin Info Card - Showcase Beautiful Plugin Cards, Theme Cards, and GitHub Repos Anywhere===
 Contributors: briKou, ronalfy
-Tags: cards, card, github, showcase, grid
+Tags: cards, card, github, showcase, embed
 Requires at least: 6.9
 Tested up to: 7.1
 Stable tag: 6.4.4
@@ -8,13 +8,13 @@ Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Add beautiful, customizable cards to showcase plugins, themes, and projects from WordPress.org, GitHub, EDD, and third-party plugins.
+Add beautiful, customizable cards to showcase plugins, themes, and projects from WordPress.org, GitHub repos, EDD, and third-party plugins.
 
 == Description ==
 
-WP Plugin Info Card lets you display WordPress plugins, GitHub repositories, Easy Digital Downloads plugins, and third-party plugins in a beautiful and customizable showcase using blocks or shortcodes (compatible with most page builders).
+WP Plugin Info Card lets you showcase WordPress plugins, GitHub repositories, Easy Digital Downloads plugins, and custom (third-party) plugins in a beautiful and customizable showcase using blocks or shortcodes (compatible with most page builders).
 
-Whether you are showcasing your own plugins, highlighting recommended tools, or displaying GitHub projects, WP Plugin Info Card gives you more flexibility than the default WordPress blocks by supporting multiple data sources with consistent, beautiful layouts.
+Whether you are displaying your own plugins, highlighting recommended tools, or displaying GitHub projects, WP Plugin Info Card gives you more flexibility than the default WordPress blocks by supporting multiple data sources with consistent, beautiful layouts.
 
 It works with WordPress.org plugins and themes, GitHub repositories, Easy Digital Downloads (EDD) products, and third-party plugins, so you are not limited to a single ecosystem to showcase your favorites.
 
@@ -69,7 +69,7 @@ Display plugin screenshots from WordPress.org in a beautiful card featuring a re
 
 > The Screenshots block/shortcode is now compatible with third-party <a href="https://fooplugins.com/foobox/">lightbox plugin FooBox Premium</a>.
 
-**Profile Badges**
+**WordPress Profile/User Badges**
 
 Display your WordPress.org profile badges to highlight contributions, plugins, and community involvement. It supports dynamic and custom (user-selected) badges. These are perfect for About, Team, and Profile pages.
 
@@ -205,7 +205,7 @@ Yes, this video shows you how:
 4. Author Query displaying cards in a 3-column grid.
 5. Plugin Screenshots Info Card - Display a plugin with screenshots (if available).
 6. GitHub Info Cards are displayed in a grid.
-7. .org Profile badges displaying in a grid.
+7. WordPress.org Profile badges displaying in a grid.
 
 == Changelog ==
 
