@@ -47,12 +47,15 @@ class Main {
 			'wppic-admin-home',
 			'wppicAdminHome',
 			array(
-				'getNonce'         => wp_create_nonce( 'wppic-admin-home-retrieve-options' ),
-				'saveNonce'        => wp_create_nonce( 'wppic-save-options' ),
-				'resetNonce'       => wp_create_nonce( 'wppic-reset-options' ),
-				'clearCacheNonce'  => wp_create_nonce( 'wppic-clear-cache' ),
-				'checkPluginNonce' => wp_create_nonce( 'wppic-check-plugin' ),
-				'checkThemeNonce'  => wp_create_nonce( 'wppic-check-theme' ),
+				'getNonce'              => wp_create_nonce( 'wppic-admin-home-retrieve-options' ),
+				'saveNonce'             => wp_create_nonce( 'wppic-save-options' ),
+				'resetNonce'            => wp_create_nonce( 'wppic-reset-options' ),
+				'clearCacheNonce'       => wp_create_nonce( 'wppic-clear-cache' ),
+				'checkPluginNonce'      => wp_create_nonce( 'wppic-check-plugin' ),
+				'checkThemeNonce'       => wp_create_nonce( 'wppic-check-theme' ),
+				'dismissReviewNagNonce' => wp_create_nonce( 'wppic-dismiss-review-nag' ),
+				'reviewUrl'             => esc_url_raw( Functions::get_plugin_ratings_uri() . '#new-post' ),
+				'reviewNagDismissed'    => (bool) get_user_meta( get_current_user_id(), 'wppic_review_nag_dismissed', true ),
 			)
 		);
 	}

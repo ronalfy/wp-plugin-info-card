@@ -30,6 +30,7 @@ import {
 	Plug2,
 	Paintbrush2,
 	Globe,
+	Star,
 } from 'lucide-react';
 import SendCommand from '../../utils/SendCommand';
 import Notice from '../../components/Notice';
@@ -455,6 +456,7 @@ const Interface = ( props ) => {
 			restEndpointEnabled: wppicAdminHome?.restEndpointEnabled ?? false,
 		},
 	} );
+	const [ reviewNagDismissed, setReviewNagDismissed ] = useState( Boolean( wppicAdminHome.reviewNagDismissed ) );
 	const formValues = useWatch( { control } );
 	const { errors, isDirty, dirtyFields } = useFormState( {
 		control,
@@ -1081,6 +1083,43 @@ const Interface = ( props ) => {
 							{ __( 'French Documentation', 'wp-plugin-info-card' ) }
 						</Button>
 					</div>
+					{ ! reviewNagDismissed && (
+						<div className="wppic-admin-panel-sidebar-card wppic-admin-review-nag">
+							<h3>
+								<Star size={ 24 } />
+								{ __( 'Enjoying the plugin?', 'wp-plugin-info-card' ) }
+							</h3>
+							<p>
+								{ __(
+									'If this plugin has been useful, please consider leaving a 5-star review on WordPress.org. It helps others find the plugin and means a lot.',
+									'wp-plugin-info-card',
+								) }
+							</p>
+							<Button
+								variant="primary"
+								href={ wppicAdminHome.reviewUrl }
+								className="wppic-btn wppic-btn-alt has-icon-right btn-full-width"
+								icon={ () => <ExternalLink /> }
+								iconPosition="right"
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{ __( 'Leave a Review', 'wp-plugin-info-card' ) }
+							</Button>
+							<Button
+								variant="tertiary"
+								className="wppic-admin-review-nag-dismiss"
+								onClick={ () => {
+									setReviewNagDismissed( true );
+									SendCommand( 'wppic_dismiss_review_nag', {
+										nonce: wppicAdminHome.dismissReviewNagNonce,
+									} );
+								} }
+							>
+								{ __( 'Dismiss', 'wp-plugin-info-card' ) }
+							</Button>
+						</div>
+					) }
 				</div>
 			</div>
 		</>

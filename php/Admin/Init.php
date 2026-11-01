@@ -42,6 +42,7 @@ class Init {
 		add_action( 'wp_ajax_wppic_check_plugin_slug', array( $this, 'ajax_check_plugin_slug' ) );
 		add_action( 'wp_ajax_wppic_check_theme', array( $this, 'ajax_check_theme' ) );
 		add_action( 'wp_ajax_wppic_get_sample_plugin', array( $this, 'ajax_get_sample_plugin' ) );
+		add_action( 'wp_ajax_wppic_dismiss_review_nag', array( $this, 'ajax_dismiss_review_nag' ) );
 
 		// Actions for custom plugins.
 		add_action( 'wp_ajax_wppic_save_custom_plugin', array( $this, 'ajax_save_custom_plugin' ) );
@@ -765,6 +766,41 @@ class Init {
 		);
 	}
 
+
+	/**
+	 * Dismiss the Home tab review nag for the current user.
+	 */
+	public function ajax_dismiss_review_nag() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error(
+				array(
+					'message'     => __( 'You are not authorized to dismiss this notice.', 'wp-plugin-info-card' ),
+					'type'        => 'error',
+					'dismissable' => true,
+				)
+			);
+		}
+
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'wppic-dismiss-review-nag' ) ) {
+			wp_send_json_error(
+				array(
+					'message'     => __( 'Nonce verification failed', 'wp-plugin-info-card' ),
+					'type'        => 'error',
+					'dismissable' => true,
+				)
+			);
+		}
+
+		update_user_meta( get_current_user_id(), 'wppic_review_nag_dismissed', '1' );
+		wp_send_json_success(
+			array(
+				'message'     => __( 'Review notice dismissed.', 'wp-plugin-info-card' ),
+				'type'        => 'success',
+				'dismissable' => true,
+			)
+		);
+	}
 
 	/**
 	 * Save options via Ajax.

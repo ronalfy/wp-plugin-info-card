@@ -919,11 +919,11 @@ class Functions {
 	}
 
 	/**
-	 * Retrieve the plugin documentation URI.
+	 * Retrieve the plugin ratings URI.
 	 */
 	public static function get_plugin_ratings_uri() {
 		/**
-		 * Filer the output of the plugin ratings URI.
+		 * Filter the output of the plugin ratings URI.
 		 *
 		 * Potentially change branding of the plugin.
 		 *
@@ -931,7 +931,7 @@ class Functions {
 		 *
 		 * @param string $plugin_ratings_uri Plugin ratings URI.
 		 */
-		return apply_filters( 'wppic_plugin_docs_uri', 'https://wordpress.org/support/plugin/wp-plugin-info-card/reviews/' );
+		return apply_filters( 'wppic_plugin_ratings_uri', 'https://wordpress.org/support/plugin/wp-plugin-info-card/reviews/' );
 	}
 
 	/**
