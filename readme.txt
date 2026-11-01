@@ -3,7 +3,7 @@ Contributors: briKou, ronalfy
 Tags: cards, card, github, showcase, grid
 Requires at least: 6.9
 Tested up to: 7.1
-Stable tag: 6.4.2
+Stable tag: 6.4.4
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -208,6 +208,11 @@ Yes, this video shows you how:
 7. .org Profile badges displaying in a grid.
 
 == Changelog ==
+
+= 6.4.4 =
+* Released 2026-11-01
+* Fix: Pasting in a GitHub repo in the editor would cause an unresolved error.
+* Fix: Releases/downloads would never be retrieved due to a deprecated has_downloads key.
 
 = 6.4.2 =
 * Released 2026-10-28
@@ -677,5 +682,5 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 == Upgrade Notice ==
 
-= 6.4.2 =
-New: Plugin Screenshots block/shortcode supports FooBox Premium when launching slideshows. Fix: Auto-load files now have abspath checks for extra security.
+= 6.4.4 =
+Fixes: Pasting in a GitHub repo in the editor would cause an unresolved error. Releases/downloads would never be retrieved due to a deprecated has_downloads key.
