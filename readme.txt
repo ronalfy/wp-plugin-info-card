@@ -213,6 +213,8 @@ Yes, this video shows you how:
 * Released 2026-11-01
 * Fix: Pasting in a GitHub repo in the editor would cause an unresolved error.
 * Fix: Releases/downloads would never be retrieved due to a deprecated has_downloads key.
+* New: Adding dismissible ratings nag to the admin to help promote the plugin.
+* New: Added support shortcut link for those needing more urgent help.
 
 = 6.4.2 =
 * Released 2026-10-28
@@ -683,4 +685,4 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 == Upgrade Notice ==
 
 = 6.4.4 =
-Fixes: Pasting in a GitHub repo in the editor would cause an unresolved error. Releases/downloads would never be retrieved due to a deprecated has_downloads key.
+Fixes: Pasting in a GitHub repo in the editor would cause an unresolved error. Releases/downloads would never be retrieved due to a deprecated has_downloads key. New: Adding ratings and support cards to the admin.
