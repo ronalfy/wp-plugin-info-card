@@ -31,6 +31,7 @@ import {
 	Paintbrush2,
 	Globe,
 	Star,
+	LifeBuoy,
 } from 'lucide-react';
 import SendCommand from '../../utils/SendCommand';
 import Notice from '../../components/Notice';
@@ -1120,6 +1121,29 @@ const Interface = ( props ) => {
 							</Button>
 						</div>
 					) }
+					<div className="wppic-admin-panel-sidebar-card wppic-admin-support-card">
+						<h3>
+							<LifeBuoy size={ 24 } />
+							{ __( 'Need help?', 'wp-plugin-info-card' ) }
+						</h3>
+						<p>
+							{ __(
+								'Visit the WordPress.org support forums if you have a question or run into a problem. No issue is too small.',
+								'wp-plugin-info-card',
+							) }
+						</p>
+						<Button
+							variant="primary"
+							href={ wppicAdminHome.supportUrl }
+							className="wppic-btn wppic-btn-alt has-icon-right btn-full-width"
+							icon={ () => <ExternalLink /> }
+							iconPosition="right"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{ __( 'Get Support', 'wp-plugin-info-card' ) }
+						</Button>
+					</div>
 				</div>
 			</div>
 		</>

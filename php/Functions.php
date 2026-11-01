@@ -935,6 +935,22 @@ class Functions {
 	}
 
 	/**
+	 * Retrieve the plugin support forums URI.
+	 */
+	public static function get_plugin_support_forums_uri() {
+		/**
+		 * Filter the output of the plugin support forums URI.
+		 *
+		 * Potentially change branding of the plugin.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param string $plugin_support_forums_uri Plugin support forums URI.
+		 */
+		return apply_filters( 'wppic_plugin_support_forums_uri', 'https://wordpress.org/support/plugin/wp-plugin-info-card/' );
+	}
+
+	/**
 	 * Retrieve the plugin title.
 	 */
 	public static function get_plugin_title() {

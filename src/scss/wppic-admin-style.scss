@@ -352,7 +352,8 @@ html {
 		text-align: center;
 	}
 
-	&.wppic-admin-review-nag {
+	&.wppic-admin-review-nag,
+	&.wppic-admin-support-card {
 		h3 {
 			grid-template-columns: 24px 1fr;
 			column-gap: 12px;

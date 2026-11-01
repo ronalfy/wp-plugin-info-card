@@ -56,6 +56,7 @@ class Main {
 				'dismissReviewNagNonce' => wp_create_nonce( 'wppic-dismiss-review-nag' ),
 				'reviewUrl'             => esc_url_raw( Functions::get_plugin_ratings_uri() . '#new-post' ),
 				'reviewNagDismissed'    => (bool) get_user_meta( get_current_user_id(), 'wppic_review_nag_dismissed', true ),
+				'supportUrl'            => esc_url_raw( Functions::get_plugin_support_forums_uri() ),
 			)
 		);
 	}
