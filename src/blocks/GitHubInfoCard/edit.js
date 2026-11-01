@@ -109,14 +109,27 @@ const GitHubInfoCard = ( props ) => {
 		getShowLastUpdated,
 		getButtonType,
 	} = useSelect( ( newSelect ) => {
+		const storeName = blockStore( blockUniqueId );
+
+		// Context uniqueId is empty on the first paste/insert frame. select(null) throws.
+		if ( ! storeName ) {
+			return {
+				getShowTopBar: () => true,
+				getShowAuthorBar: () => true,
+				getShowStatsBar: () => true,
+				getShowLastUpdated: () => true,
+				getButtonType: () => 'github',
+			};
+		}
+
 		return {
-			getShowTopBar: newSelect( blockStore( blockUniqueId ) ).getShowTopBar,
-			getShowAuthorBar: newSelect( blockStore( blockUniqueId ) ).getShowAuthorBar,
-			getShowStatsBar: newSelect( blockStore( blockUniqueId ) ).getShowStatsBar,
-			getShowLastUpdated: newSelect( blockStore( blockUniqueId ) ).getShowLastUpdated,
-			getButtonType: newSelect( blockStore( blockUniqueId ) ).getButtonType,
+			getShowTopBar: newSelect( storeName ).getShowTopBar,
+			getShowAuthorBar: newSelect( storeName ).getShowAuthorBar,
+			getShowStatsBar: newSelect( storeName ).getShowStatsBar,
+			getShowLastUpdated: newSelect( storeName ).getShowLastUpdated,
+			getButtonType: newSelect( storeName ).getButtonType,
 		};
-	} );
+	}, [ blockUniqueId ] );
 
 	/**
 	 * Get the styles of the parent block.

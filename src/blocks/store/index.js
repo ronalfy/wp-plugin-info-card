@@ -96,6 +96,7 @@ const createBlockStore = ( uniqueId ) => {
 };
 const blockStores = [];
 const blockStore = ( uniqueId ) => {
+	// Callers must skip select()/dispatch() when this is null. select(null) throws.
 	if ( ! uniqueId ) {
 		return null;
 	}

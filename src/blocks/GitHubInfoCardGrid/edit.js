@@ -58,7 +58,7 @@ const gitHubColors = [
 
 const GitHubInfoCardGrid = ( props ) => {
 	const { attributes, setAttributes, clientId } = props;
-	const blockUniqueId = useInstanceId( GitHubInfoCardGrid, 'wp-plugin-info-card-id' );
+	const instanceId = useInstanceId( GitHubInfoCardGrid, 'wp-plugin-info-card-id' );
 	const [ hasCustomColors, setHasCustomColors ] = useState( false );
 	const [ colors ] = useState( [
 		...wppic.palette,
@@ -94,7 +94,11 @@ const GitHubInfoCardGrid = ( props ) => {
 		buttonBgColorHover,
 		buttonTextColor,
 		buttonTextColorHover,
+		uniqueId,
 	} = attributes;
+
+	// Prefer a saved or transform-provided uniqueId so child cards can select the store on first paint.
+	const blockUniqueId = uniqueId || instanceId;
 
 	const {
 		getShowTopBar,
@@ -103,14 +107,26 @@ const GitHubInfoCardGrid = ( props ) => {
 		getShowLastUpdated,
 		getButtonType,
 	} = useSelect( ( select ) => {
+		const storeName = blockStore( blockUniqueId );
+
+		if ( ! storeName ) {
+			return {
+				getShowTopBar: () => true,
+				getShowStatsBar: () => true,
+				getShowAuthorBar: () => true,
+				getShowLastUpdated: () => true,
+				getButtonType: () => 'github',
+			};
+		}
+
 		return {
-			getShowTopBar: select( blockStore( blockUniqueId ) ).getShowTopBar,
-			getShowStatsBar: select( blockStore( blockUniqueId ) ).getShowStatsBar,
-			getShowAuthorBar: select( blockStore( blockUniqueId ) ).getShowAuthorBar,
-			getShowLastUpdated: select( blockStore( blockUniqueId ) ).getShowLastUpdated,
-			getButtonType: select( blockStore( blockUniqueId ) ).getButtonType,
+			getShowTopBar: select( storeName ).getShowTopBar,
+			getShowStatsBar: select( storeName ).getShowStatsBar,
+			getShowAuthorBar: select( storeName ).getShowAuthorBar,
+			getShowLastUpdated: select( storeName ).getShowLastUpdated,
+			getButtonType: select( storeName ).getButtonType,
 		};
-	} );
+	}, [ blockUniqueId ] );
 
 	const {
 		setShowTopBar,
@@ -170,8 +186,10 @@ const GitHubInfoCardGrid = ( props ) => {
 	} );
 
 	useEffect( () => {
-		setAttributes( { uniqueId: blockUniqueId } );
-	}, [] );
+		if ( ! uniqueId && blockUniqueId ) {
+			setAttributes( { uniqueId: blockUniqueId } );
+		}
+	}, [ uniqueId, blockUniqueId ] );
 
 	/**
 	 * Retrieve colums interface for sidebar options.

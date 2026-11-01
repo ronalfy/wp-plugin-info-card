@@ -1,4 +1,4 @@
-=== WP Plugin Info Card===
+=== WP Plugin Info Card - Showcase Beautiful Plugin, Theme, and GitHub Cards Anywhere===
 Contributors: briKou, ronalfy
 Tags: cards, card, github, showcase, grid
 Requires at least: 6.9

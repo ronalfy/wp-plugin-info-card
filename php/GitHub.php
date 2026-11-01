@@ -92,7 +92,6 @@ class GitHub {
 				'pushed_at'         => 'pushed_at',
 				'homepage'          => 'homepage',
 				'language'          => 'language',
-				'has_downloads'     => 'has_downloads',
 			);
 
 			$alt_keys_to_extract = array(
@@ -146,28 +145,25 @@ class GitHub {
 				}
 			}
 
-			// Now get the latest release.
+			// Repo `has_downloads` is the old Downloads feature (removed 2012) and is always false now.
+			// Releases live at /releases/latest. A 404 means the repo has no published release.
 			$wppic_data['latest_release_tag_name']     = '';
 			$wppic_data['latest_release_download_url'] = '';
 			$wppic_data['latest_release_url']          = '';
-			if ( $wppic_data['has_downloads'] ) {
-				$releases_url      = sprintf(
-					'https://api.github.com/repos/%s/releases',
-					$slug
-				);
-				$releases_response = wp_remote_get( esc_url( $releases_url ), array( 'headers' => $headers ) );
-				if ( ! is_wp_error( $releases_response ) && 200 === wp_remote_retrieve_response_code( $releases_response ) ) {
-					$releases_data = json_decode( wp_remote_retrieve_body( $releases_response ) );
-					if ( ! empty( $releases_data ) ) {
-						// Get the first item.
-						$latest_release                        = current( $releases_data );
-						$wppic_data['latest_release_tag_name'] = $latest_release->tag_name;
-						if ( ! empty( $latest_release->assets ) ) {
-							$current_asset                             = current( $latest_release->assets );
-							$wppic_data['latest_release_download_url'] = $current_asset->browser_download_url;
-						}
-						$wppic_data['latest_release_url'] = $latest_release->html_url;
+			$releases_url                              = sprintf(
+				'https://api.github.com/repos/%s/releases/latest',
+				$slug
+			);
+			$releases_response                         = wp_remote_get( esc_url( $releases_url ), array( 'headers' => $headers ) );
+			if ( ! is_wp_error( $releases_response ) && 200 === wp_remote_retrieve_response_code( $releases_response ) ) {
+				$latest_release = json_decode( wp_remote_retrieve_body( $releases_response ) );
+				if ( ! empty( $latest_release ) && ! empty( $latest_release->tag_name ) ) {
+					$wppic_data['latest_release_tag_name'] = $latest_release->tag_name;
+					if ( ! empty( $latest_release->assets ) ) {
+						$current_asset                             = current( $latest_release->assets );
+						$wppic_data['latest_release_download_url'] = $current_asset->browser_download_url;
 					}
+					$wppic_data['latest_release_url'] = $latest_release->html_url;
 				}
 			}
 
