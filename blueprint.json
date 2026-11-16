@@ -1,124 +1,129 @@
 {
     "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-    "preferredVersions": {
-        "php": "8.1",
-        "wp": "latest"
+    "version": 2,
+    "phpVersion": "8.3",
+    "wordpressVersion": "latest",
+    "applicationOptions": {
+        "wordpress-playground": {
+            "landingPage": "/",
+            "login": true,
+            "networkAccess": true
+        }
     },
-    "features": {
-        "networking": true
-    },
-    "phpExtensionBundles": [
-        "kitchen-sink"
+    "activeTheme": "twentytwentyfive",
+    "plugins": [
+        "generateblocks",
+        "mediaron-block-shortcuts-for-gb",
+        "alerts-dlx",
+        "slash-edit",
+        "wp-plugin-info-card"
     ],
-    "landingPage": "/demo/",
-    "steps": [
+    "contentBaseline": "empty",
+    "siteOptions": {
+        "blogname": "WP Plugin Info Card Demo",
+        "blogdescription": "One plugin to showcase many types of plugin and GitHub cards",
+        "timezone_string": "",
+        "gmt_offset": "0",
+        "date_format": "F j, Y",
+        "time_format": "g:i a",
+        "start_of_week": "1",
+        "permalink_structure": "/%year%/%monthnum%/%postname%/",
+        "category_base": "",
+        "tag_base": "",
+        "default_comment_status": "open",
+        "default_ping_status": "open",
+        "comment_moderation": "1",
+        "comment_previously_approved": "1",
+        "comment_max_links": "2",
+        "moderation_keys": "",
+        "disallowed_keys": "",
+        "comment_registration": "",
+        "require_name_email": "1",
+        "show_comments_cookies_opt_in": "1",
+        "thread_comments": "1",
+        "thread_comments_depth": "5",
+        "page_comments": "",
+        "comments_per_page": "50",
+        "default_comments_page": "newest",
+        "comment_order": "asc",
+        "close_comments_for_old_posts": "1",
+        "close_comments_days_old": "1",
+        "show_avatars": "1",
+        "avatar_rating": "G",
+        "avatar_default": "mystery",
+        "thumbnail_size_w": "150",
+        "thumbnail_size_h": "150",
+        "thumbnail_crop": "1",
+        "medium_size_w": "300",
+        "medium_size_h": "300",
+        "medium_large_size_w": "768",
+        "medium_large_size_h": "0",
+        "large_size_w": "1024",
+        "large_size_h": "1024",
+        "uploads_use_yearmonth_folders": "1",
+        "generateblocks_version": "2.5.1"
+    },
+    "additionalStepsAfterExecution": [
         {
-            "step": "login",
-            "username": "admin",
-            "password": "password"
-        },
-        {
-            "step": "installTheme",
-            "themeZipFile": {
-                "resource": "wordpress.org/themes",
-                "slug": "astra"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-        {
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "alerts-dlx"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-		{
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "slash-edit"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-        {
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "highlight-and-share"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-        {
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "pattern-wrangler"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-        {
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "slash-edit"
-            },
-            "options": {
-                "activate": true
-            }
+            "step": "importContent",
+            "content": [
+                {
+                    "type": "wxr",
+                    "source": "https://github.com/blueprint.wxr",
+                    "authorsMode": "map",
+                    "authorsMap": {
+                        "ronalfy": "admin"
+                    },
+                    "defaultAuthorUsername": "admin",
+                    "urlsMode": "rewrite",
+                    "staticAssets": "fetch"
+                }
+            ]
         },
         {
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "wp-plugin-info-card"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-		{
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "simple-comment-editing"
-            },
-            "options": {
-                "activate": true
-            }
-        },
-        {
-            "step": "importWxr",
-            "file": {
-                "resource": "url",
-                "url": "https://raw.githubusercontent.com/DLXPlugins/wp-plugin-info-card/dev/blueprint-content.xml"
+            "step": "runPHP",
+            "code": {
+                "filename": "front-page.php",
+                "content": "<?php require '/wordpress/wp-load.php'; $page = get_page_by_path( 'front-page', OBJECT, 'page' ); if ( $page instanceof WP_Post ) { update_option( 'page_on_front', (int) $page->ID ); update_option( 'show_on_front', 'page' ); }"
             }
         },
         {
             "step": "setSiteOptions",
             "options": {
-                "blogname": "WP Plugin Info Card Demo",
-                "admin_email": "dev@test.local",
-				"permalink_structure": "/%postname%/",
-                "template": "astra",
-                "stylesheet": "astra",
-				"comment-edit-lite-activate": "noredirect"
+                "theme_mods_twentytwentyfive": {
+                    "custom_css_post_id": -1
+                },
+                "wppic_settings": {
+                    "default_layout": "card",
+                    "colorscheme": "default",
+                    "widget": false,
+                    "ajax": false,
+                    "enqueue": false,
+                    "credit": false,
+                    "cache_expiration": "3600",
+                    "ping_rest_api_interval": "14",
+                    "enable_screenshots": "1",
+                    "enable_local_screenshots": "",
+                    "skip_animated_gifs": "1",
+                    "enable_local_screenshots_download_missing": "",
+                    "enable_local_screenshots_keep_current": "",
+                    "enable_local_screenshots_cli_command": "",
+                    "screenshots_table_version": "0.0.0",
+                    "enable_edd": false,
+                    "edd_default_icon_id": "0",
+                    "edd_default_banner_id": "0",
+                    "edd_default_icon_url": "",
+                    "edd_default_banner_url": "",
+                    "enable_rest_api": false,
+                    "enable_custom_plugins": true,
+                    "enable_github_info_cards": true,
+                    "github_info_cards_token": "",
+                    "github_info_cards_unauthenticated": true,
+                    "github_info_cards_rate_limit": "60",
+                    "github_info_cards_rate_remaining": "60",
+                    "github_info_cards_rate_reset": "1794863772"
+                }
             }
-        },
-		{
-			"step": "runPHP",
-			"code": "<?php require_once 'wordpress/wp-load.php'; update_option( 'wppic_settings', maybe_unserialize( 'a:18:{s:14:\"default_layout\";s:4:\"card\";s:11:\"colorscheme\";s:7:\"default\";s:6:\"widget\";b:0;s:4:\"ajax\";b:0;s:7:\"enqueue\";b:0;s:6:\"credit\";b:0;s:16:\"cache_expiration\";s:4:\"3600\";s:18:\"enable_screenshots\";s:1:\"1\";s:24:\"enable_local_screenshots\";s:0:\"\";s:18:\"skip_animated_gifs\";s:1:\"1\";s:41:\"enable_local_screenshots_download_missing\";s:0:\"\";s:37:\"enable_local_screenshots_keep_current\";s:0:\"\";s:36:\"enable_local_screenshots_cli_command\";s:0:\"\";s:25:\"screenshots_table_version\";s:5:\"0.0.0\";s:9:\"saveNonce\";s:10:\"d9f5901be7\";s:10:\"resetNonce\";s:10:\"cfbb070da3\";s:4:\"list\";a:0:{}s:10:\"theme-list\";a:0:{}}' ) ); ?>"
-
-		}
+        }
     ]
 }
