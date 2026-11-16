@@ -276,7 +276,7 @@ const GitHubInfoCards = () => {
 														disabled={ apiValid || revoking || saving }
 													/>
 													<p className="wppic-admin-row-description">
-														<a href="https://dlxplugins.com/how-tos/how-to-create-a-non-expiring-github-personal-access-token/" target="_blank" rel="noopener noreferrer">
+														<a href="https://docs.mediaron.com/product/wp-plugin-info-card/creating-a-github-token/" target="_blank" rel="noopener noreferrer">
 															{ __( 'How to Create a Non-Expiring GitHub Personal Access Token.', 'wp-plugin-info-card' ) }
 														</a>
 													</p>

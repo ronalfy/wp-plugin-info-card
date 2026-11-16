@@ -7,10 +7,10 @@
 
 /**
  * Plugin Name: WP Plugin Info Card
- * Plugin URI: https://dlxplugins.com/plugins/plugin-info-card/
+ * Plugin URI: https://wordpress.org/plugins/wp-plugin-info-card/
  * Description: WP Plugin Info Card displays plugins & themes identity cards in a beautiful box with a smooth rotation effect using WordPress.org Plugin API & WordPress.org Theme API. Dashboard widget included.
  * Author: Brice CAPOBIANCO, Ronald Huereca
- * Author URI: https://dlxplugins.com/plugins/plugin-info-card/
+ * Author URI: https://mediaron.com
  * Version: 6.4.4
  * Text Domain: wp-plugin-info-card
  * License: GPL v2 or later

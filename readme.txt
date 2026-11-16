@@ -288,13 +288,11 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 = 6.1.0 =
 * Released 2025-09-02
-* New Feature: <a href="https://dlxplugins.com/announcements/wp-plugin-info-card-6-1-0-released-with-github-info-cards/">GitHub Info Cards released</a>. Now showcase your favorite GitHub repo using a block or shortcode.
 * New: Admin panel option for enabling GitHub Info Cards.
 * New: Cards support lazy loading for performance.
 
 = 6.0.0 =
 * Released 2025-08-19
-* New feature: Custom Plugin Cards (<a href="https://dlxplugins.com/announcements/wp-plugin-info-card-6-0-released-with-custom-plugin-cards/">read the 6.0.0 annnouncement</a>). Create, import, and export these custom plugins.
 * New feature: New margin controls on the plugin cards for better appearance.
 * New feature: Added transforms to the main card block and the screenshots block.
 * Bug fix: A lot of code cleanup has been done.
@@ -322,7 +320,6 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 = 5.2.5 =
 * Released 2024-07-20
-* <a href="https://dlxplugins.com/announcements/plugin-info-card-5-2-5-released-with-plugin-theme-exclusions-and-custom-titles/">Read the full announcement post</a> for this release.
 * New feature: override plugin and theme titles, including in the grid layouts.
 * New feature: hide a plugin or theme from a grid layout.
 * New feature: Query block and shortcode now supports CSS Grid for layout structure.
@@ -337,14 +334,12 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 = 5.2.0 =
 * Released 2024-07-17
-* <a href="https://dlxplugins.com/announcements/plugin-info-card-5-2-introduces-easy-digital-downloads-compatibility/">Read the announcement post</a> for more details.
 * New Feature: Added Easy Digital Downloads integration.
 * Bug fix: Fixing large layout in the block editor.
 * Bug fix: Fixing mobile styling in the admin options.
 
 = 5.1.1 =
 * Released 2024-07-09
-* New layout: Ratings. Display plugin or theme ratings in a card format. <a href="https://dlxplugins.com/announcements/plugin-info-card-5-1-released-with-new-ratings-layout/">Read the announcement post</a> for more details.
 * New feature: data is stored as options for redundancy and performance.
 * Bug fix: Lazy loading the screenshots block was causing layout inconsistencies, so it has been reworked.
 * New feature: can clear the backup options from the admin panel.
@@ -355,7 +350,6 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 * Released 2024-03-06
 * New admin panel look and feel.
 * New Plugin Screenshots block and shortcode allows you to display plugin screenshots.
-* See <a href="https://dlxplugins.com/announcements/wp-plugin-info-card-5-0-released-with-new-admin-ui-and-plugin-screenshots-block/">?the announcement post</a> for more details.
 
 = 4.0.10 =
 * Released 2023-12-12

@@ -73,11 +73,11 @@ class Settings {
 				'site'      => $website,
 				'email'     => $user->data->user_email,
 				'license'   => '',
-				'product'   => 'Ajaxify Comments',
-				'subject'   => 'Ajaxify Comments support',
+				'product'   => 'WP Plugin Info Card',
+				'subject'   => 'WP Plugin Info Card Help',
 				'support'   => 'Yes',
 			),
-			'https://dlxplugins.com/support/'
+			'https://docs.mediaron.com/product/wp-plugin-info-card'
 		);
 		?>
 		<header id="wppic-admin-header">
