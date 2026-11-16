@@ -3,7 +3,7 @@ Contributors: briKou, ronalfy
 Tags: cards, card, github, showcase, embed
 Requires at least: 6.9
 Tested up to: 7.2
-Stable tag: 6.4.5
+Stable tag: 6.4.8
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -14,14 +14,14 @@ Add beautiful, customizable cards to showcase plugins, themes, and projects from
 
 WP Plugin Info Card lets you showcase WordPress plugins, GitHub repositories, Easy Digital Downloads plugins, and custom (third-party) plugins in a beautiful and customizable showcase using blocks or shortcodes (compatible with most page builders).
 
-Whether you are displaying your own plugins, highlighting recommended tools, or displaying GitHub projects, WP Plugin Info Card gives you more flexibility than the default WordPress blocks by supporting multiple data sources with consistent, beautiful layouts.
+Whether you are displaying your own plugins, highlighting recommended tools, or displaying GitHub projects, WP Plugin Info Card gives you more flexibility than the default WordPress blocks by supporting multiple data sources with consistent, beautiful layouts you can embed anywhere.
 
 It works with WordPress.org plugins and themes, GitHub repositories, Easy Digital Downloads (EDD) products, and third-party plugins, so you are not limited to a single ecosystem to showcase your favorites.
 
 This plugin is perfect for:
 
 * Reviewers and Developers wanting to showcase projects, whether hosted on GitHub, WordPress.org, or hosted else-where and custom created.
-* WordPress contributors who'd like to display contribution badges or past contributions.
+* WordPress contributors who'd like to embed contribution badges or past contributions on about or team pages.
 * Users wanting more design choice and layout variation than what is offered by the Core WordPress blocks.
 
 [youtube https://www.youtube.com/watch?v=8eKDCEoXGKU&rel=0]
@@ -32,7 +32,7 @@ The default WordPress Plugin/Theme blocks are limited to WordPress.org listings 
 
 Use it to:
 
-* Display WordPress.org plugin cards and theme cards anywhere on your site. Customize the grids and layouts with ease, supporting both blocks and shortcodes.
+* Display WordPress.org plugin cards and theme cards anywhere on your site. Customize the grids and layouts with ease, supporting both blocks and shortcodes, and embed them anywhere.
 * Showcase GitHub repositories in a card-like grid, highlighting your favorite GitHub projects, or showcasing your own. Depending on the permissions of your GitHub token, this works for private repos.
 * Highlight premium or third-party plugins not listed on WordPress.org. For example, you'd like to feature a popular pro plugin. Simply fill in the plugin details, reference it by slug, and display it in a beautiful card.
 * Display plugin screenshots from a WordPress.org plugin in a responsive card with carousel and lightbox suppport.
@@ -208,6 +208,11 @@ Yes, this video shows you how:
 7. WordPress.org Profile badges displaying in a grid.
 
 == Changelog ==
+
+= 6.4.8 =
+* Released 2026-11-16
+* New: GitHub Cards can now be enabled and displayed without a personal access token. Please note that GitHub limits requests to 60 per hour without a token. This option is useful if you need a quick test or demo of the cards without jumping through the hoops of acquiring a token.
+* Tested successfully up to WordPress 7.2.
 
 = 6.4.5 =
 * Released 2026-11-16
@@ -683,5 +688,5 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 == Upgrade Notice ==
 
-= 6.4.5 =
-Removing references to old DLX site and documentation. Updating docs and GitHub token help to point to right location as far as help.
+= 6.4.8 =
+New: You can now enable GitHub cards without a personal access token. This is useful for quick tests or demonstrations.
