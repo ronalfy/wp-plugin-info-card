@@ -69,7 +69,7 @@
             "content": [
                 {
                     "type": "wxr",
-                    "source": "https://raw.githubusercontent.com/ronalfy/wp-plugin-info-card/refs/heads/dev/blueprint-content.xml",
+                    "source": "https://github.com/blueprint.wxr",
                     "authorsMode": "map",
                     "authorsMap": {
                         "ronalfy": "admin"
@@ -92,6 +92,48 @@
             "options": {
                 "theme_mods_twentytwentyfive": {
                     "custom_css_post_id": -1
+                },
+                "wppic_plugin_generateblocks": {
+                    "url": "https://wordpress.org/plugins/generateblocks/",
+                    "name": "GenerateBlocks",
+                    "slug": "generateblocks",
+                    "version": "2.5.1",
+                    "author": "Tom",
+                    "author_profile": "https://profiles.wordpress.org/edge22/",
+                    "contributors": "edge22",
+                    "tested": "7.1.4",
+                    "requires": "6.7",
+                    "rating": 98,
+                    "num_ratings": 122,
+                    "ratings": {
+                        "5": 115,
+                        "4": 1,
+                        "3": 4,
+                        "2": 0,
+                        "1": 2
+                    },
+                    "downloaded": 200000,
+                    "active_installs": 200000,
+                    "last_updated_human_time": "6 days",
+                    "last_updated": "2026-11-10 2:44pm GMT",
+                    "last_updated_mk": "2026-11-10 2:44pm GMT",
+                    "added": "2020-05-19",
+                    "homepage": "https://generateblocks.com",
+                    "short_description": "A small collection of lightweight WordPress blocks that can accomplish nearly anything.",
+                    "download_link": "https://downloads.wordpress.org/plugin/generateblocks.2.5.1.zip",
+                    "donate_link": "https://generatepress.com",
+                    "icons": {
+                        "1x": "https://ps.w.org/generateblocks/assets/icon.svg?rev=3744275",
+                        "svg": "https://ps.w.org/generateblocks/assets/icon.svg?rev=3744275"
+                    },
+                    "banners": {
+                        "low": "https://ps.w.org/generateblocks/assets/banner-772x250.png?rev=3744275",
+                        "high": "https://ps.w.org/generateblocks/assets/banner-1544x500.png?rev=3744275"
+                    },
+                    "screenshots": [],
+                    "is_edd": false,
+                    "review_url": "",
+                    "requires_php": "7.2"
                 },
                 "wppic_settings": {
                     "default_layout": "card",
