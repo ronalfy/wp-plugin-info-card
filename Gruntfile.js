@@ -11,9 +11,11 @@
  *   runs on every front-end request. Rebuild lib without dev before zipping.
  * - `grunt` and `grunt release` run `composer install --no-dev`, add ABSPATH guards, zip, then
  *   `composer install` so local PHPStan dependencies are restored.
+ * - Composer `post-autoload-dump` always runs `bin/add-composer-guards.php`, so both installs
+ *   put the same ABSPATH guards back. `npm run build` and `npm run start` do not rewrite lib/.
  *
  * Tasks
- * - `grunt` or `grunt release` — composer install --no-dev (strips phpstan/php-stubs from lib/), guard, zip, then composer install.
+ * - `grunt` or `grunt release` — composer install --no-dev (strips phpstan/php-stubs from lib/ and reapplies ABSPATH guards), guard, zip, then composer install (restores dev deps and the same guards).
  * - `grunt compress` or `grunt compress-only` — zip only; does not run Composer (lib/ left as-is).
  */
 'use strict';

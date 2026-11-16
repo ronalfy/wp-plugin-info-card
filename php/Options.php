@@ -64,6 +64,8 @@ class Options {
 				case 'enable_edd':
 				case 'enable_rest_api':
 				case 'enable_custom_plugins':
+				case 'enable_github_info_cards':
+				case 'github_info_cards_unauthenticated':
 					$option = filter_var( $options[ $key ], FILTER_VALIDATE_BOOLEAN );
 					break;
 				default:
@@ -157,6 +159,7 @@ class Options {
 			'enable_custom_plugins'                     => true,
 			'enable_github_info_cards'                  => false,
 			'github_info_cards_token'                   => '',
+			'github_info_cards_unauthenticated'         => false,
 			'github_info_cards_rate_limit'              => 0,
 			'github_info_cards_rate_remaining'          => 0,
 			'github_info_cards_rate_reset'              => 0,
@@ -174,7 +177,15 @@ class Options {
 		$github_enabled    = (bool) $options['enable_github_info_cards'];
 		$github_token      = sanitize_text_field( $options['github_info_cards_token'] );
 		$github_rate_limit = (int) $options['github_info_cards_rate_limit'];
-		if ( $github_enabled && ! empty( $github_token ) && $github_rate_limit > 0 ) {
+		$unauthenticated   = ! empty( $options['github_info_cards_unauthenticated'] );
+		if ( ! $github_enabled ) {
+			return false;
+		}
+		// Public repositories can be requested without a token.
+		if ( $unauthenticated && empty( $github_token ) ) {
+			return true;
+		}
+		if ( ! empty( $github_token ) && $github_rate_limit > 0 ) {
 			return true;
 		}
 		return false;

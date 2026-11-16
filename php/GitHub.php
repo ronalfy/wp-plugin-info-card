@@ -52,13 +52,18 @@ class GitHub {
 			}
 
 			// Get options.
-			$options = Options::get_options( false, true );
-			$token   = $options['github_info_cards_token'];
+			$options         = Options::get_options( false, true );
+			$token           = $options['github_info_cards_token'];
+			$unauthenticated = ! empty( $options['github_info_cards_unauthenticated'] );
 
 			$headers = array(
-				'Authorization' => 'Bearer ' . $token,
-				'Content-Type'  => 'application/json',
+				'Content-Type' => 'application/json',
 			);
+
+			// An empty Authorization value is a 401, so omit it for anonymous public requests.
+			if ( ! $unauthenticated && ! empty( $token ) ) {
+				$headers['Authorization'] = 'Bearer ' . $token;
+			}
 
 			$response = wp_remote_get( esc_url( $api_url ), array( 'headers' => $headers ) );
 			if ( is_wp_error( $response ) ) {

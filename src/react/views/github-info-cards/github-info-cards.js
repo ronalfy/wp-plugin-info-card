@@ -16,6 +16,7 @@ const GitHubInfoCards = () => {
 	const [ saving, setSaving ] = useState( false );
 	const [ revoking, setRevoking ] = useState( false );
 	const [ apiValid, setApiValid ] = useState( false );
+	const [ unauthenticatedActive, setUnauthenticatedActive ] = useState( false );
 	const [ rateLimit, setRateLimit ] = useState( null );
 	const [ rateRemaining, setRateRemaining ] = useState( null );
 	const [ rateReset, setRateReset ] = useState( null );
@@ -40,6 +41,7 @@ const GitHubInfoCards = () => {
 		defaultValues: {
 			enable_github_info_cards: false,
 			github_info_cards_token: '',
+			github_info_cards_unauthenticated: false,
 			nonce: wppicAdminGitHubInfoCards.saveAdvancedNonce,
 		},
 	} );
@@ -59,12 +61,23 @@ const GitHubInfoCards = () => {
 			} );
 			const { success, data } = response.data;
 			if ( success ) {
+				const hasToken = ( data.github_info_cards_token || '' ).length > 0;
+				const rateReset = data.github_info_cards_rate_reset ? String( data.github_info_cards_rate_reset ) : '';
+				const unauthenticated = !! data.github_info_cards_unauthenticated && ! hasToken;
 				reset( {
 					enable_github_info_cards: data.enable_github_info_cards,
 					github_info_cards_token: data.github_info_cards_token,
+					github_info_cards_unauthenticated: unauthenticated,
 				} );
-				if ( data.enable_github_info_cards && data.github_info_cards_token.length > 0 && data.github_info_cards_rate_reset.length > 0	) {
+				if ( data.enable_github_info_cards && hasToken && rateReset.length > 0 ) {
 					setApiValid( true );
+					setUnauthenticatedActive( false );
+				} else if ( data.enable_github_info_cards && unauthenticated && rateReset.length > 0 ) {
+					setApiValid( false );
+					setUnauthenticatedActive( true );
+				} else {
+					setApiValid( false );
+					setUnauthenticatedActive( false );
 				}
 				setRateLimit( data.github_info_cards_rate_limit );
 				setRateRemaining( data.github_info_cards_rate_remaining );
@@ -90,10 +103,13 @@ const GitHubInfoCards = () => {
 	const onSubmit = async ( formData ) => {
 		setSaving( true );
 		try {
+			const tokenValue = ( formData.github_info_cards_token || '' ).trim();
+			const unauthenticated = ! tokenValue.length && !! formData.github_info_cards_unauthenticated;
 			const response = await SendCommand( 'wppic_authenticate_with_github', {
 				nonce: wppicAdminGitHubInfoCards.saveNonce,
 				enable_github_info_cards: formData.enable_github_info_cards,
-				github_info_cards_token: formData.github_info_cards_token,
+				github_info_cards_token: tokenValue,
+				github_info_cards_unauthenticated: unauthenticated,
 			} );
 
 			const { success, data } = response.data;
@@ -105,8 +121,23 @@ const GitHubInfoCards = () => {
 					message: __( 'Settings saved', 'wp-plugin-info-card' ),
 					title: __( 'Success', 'wp-plugin-info-card' ),
 				} );
-				if ( data.enable_github_info_cards && data.github_info_cards_token.length > 0 && data.github_info_cards_rate_reset.length > 0	) {
+				const hasToken = ( data.github_info_cards_token || '' ).length > 0;
+				const rateReset = data.github_info_cards_rate_reset ? String( data.github_info_cards_rate_reset ) : '';
+				const savedUnauthenticated = !! data.github_info_cards_unauthenticated && ! hasToken;
+				reset( {
+					enable_github_info_cards: data.enable_github_info_cards,
+					github_info_cards_token: data.github_info_cards_token,
+					github_info_cards_unauthenticated: savedUnauthenticated,
+				} );
+				if ( data.enable_github_info_cards && hasToken && rateReset.length > 0 ) {
 					setApiValid( true );
+					setUnauthenticatedActive( false );
+				} else if ( data.enable_github_info_cards && savedUnauthenticated && rateReset.length > 0 ) {
+					setApiValid( false );
+					setUnauthenticatedActive( true );
+				} else {
+					setApiValid( false );
+					setUnauthenticatedActive( false );
 				}
 				setRateLimit( data.github_info_cards_rate_limit );
 				setRateRemaining( data.github_info_cards_rate_remaining );
@@ -145,16 +176,20 @@ const GitHubInfoCards = () => {
 				setSnackbarOptions( {
 					isVisible: true,
 					type: 'success',
-					message: __( 'GitHub token revoked', 'wp-plugin-info-card' ),
+					message: unauthenticatedActive
+						? __( 'Unauthenticated GitHub access disabled', 'wp-plugin-info-card' )
+						: __( 'GitHub token revoked', 'wp-plugin-info-card' ),
 					title: __( 'Success', 'wp-plugin-info-card' ),
 				} );
 				setApiValid( false );
+				setUnauthenticatedActive( false );
 				setRateLimit( null );
 				setRateRemaining( null );
 				setRateReset( null );
 				reset( {
 					enable_github_info_cards: false,
 					github_info_cards_token: '',
+					github_info_cards_unauthenticated: false,
 				} );
 			} else {
 				setError( 'github_info_cards_token', {
@@ -178,7 +213,10 @@ const GitHubInfoCards = () => {
 		if ( loading ) {
 			return null;
 		}
-		if ( apiValid ) {
+		const tokenValue = ( formValues?.github_info_cards_token || '' ).trim();
+		const hasTokenField = tokenValue.length > 0;
+		const useWithoutToken = !! formValues?.github_info_cards_unauthenticated;
+		if ( apiValid && hasTokenField ) {
 			return (
 				<Button
 					variant="primary"
@@ -200,7 +238,30 @@ const GitHubInfoCards = () => {
 				</Button>
 			);
 		}
+		if ( unauthenticatedActive && ! hasTokenField ) {
+			return (
+				<Button
+					variant="primary"
+					isDestructive={ true }
+					className={ classnames(
+						'wppic__btn wppic__btn-secondary wppic__btn--icon-right',
+					) }
+					onClick={ () => {
+						onRevokeToken();
+					} }
+					disabled={ revoking }
+					icon={ () => (
+						revoking ? <Spinner /> : null
+					) }
+				>
+					{
+						revoking ? __( 'Disabling…', 'wp-plugin-info-card' ) : __( 'Disable unauthenticated access', 'wp-plugin-info-card' )
+					}
+				</Button>
+			);
+		}
 		if ( getValues( 'enable_github_info_cards' ) ) {
+			const savingWithoutToken = useWithoutToken && ! hasTokenField;
 			return (
 				<Button
 					type="submit"
@@ -214,7 +275,9 @@ const GitHubInfoCards = () => {
 					) }
 				>
 					{
-						saving ? __( 'Authenticating…', 'wp-plugin-info-card' ) : __( 'Authenticate with GitHub', 'wp-plugin-info-card' )
+						saving
+							? ( savingWithoutToken ? __( 'Saving…', 'wp-plugin-info-card' ) : __( 'Authenticating…', 'wp-plugin-info-card' ) )
+							: ( savingWithoutToken ? __( 'Save', 'wp-plugin-info-card' ) : __( 'Authenticate with GitHub', 'wp-plugin-info-card' ) )
 					}
 				</Button>
 			);
@@ -239,7 +302,7 @@ const GitHubInfoCards = () => {
 										{ ...field }
 										checked={ field.value }
 										label={ __( 'Enable GitHub Info Cards', 'wp-plugin-info-card' ) }
-										help={ __( 'Enable the GitHub Info Cards block and shortcode feature. You will need to enter a GitHub API token to use this feature.', 'wp-plugin-info-card' ) }
+										help={ __( 'Enable the GitHub Info Cards block and shortcode feature. Enter a GitHub API token, or use GitHub without a token for public repositories.', 'wp-plugin-info-card' ) }
 										onChange={ ( e ) => {
 											field.onChange( e );
 											clearErrors( 'github_info_cards_token' );
@@ -256,7 +319,7 @@ const GitHubInfoCards = () => {
 											control={ control }
 											name="github_info_cards_token"
 											rules={ {
-												required: true,
+												required: ! formValues.github_info_cards_unauthenticated,
 											} }
 											render={ ( { field } ) => (
 												<>
@@ -264,8 +327,11 @@ const GitHubInfoCards = () => {
 														{ ...field }
 														label={ __( 'GitHub Personal Access Token', 'wp-plugin-info-card' ) }
 														className={
-															classnames( 'wppic-admin-input is-required',
-																{ 'has-error': errors?.github_info_cards_token },
+															classnames( 'wppic-admin-input',
+																{
+																	'is-required': ! formValues.github_info_cards_unauthenticated,
+																	'has-error': errors?.github_info_cards_token,
+																},
 															) }
 														type="text"
 														onChange={ ( e ) => {
@@ -293,6 +359,28 @@ const GitHubInfoCards = () => {
 											)
 										}
 									</div>
+									{
+										! ( formValues.github_info_cards_token || '' ).trim().length && (
+											<div className="wppic-admin-row">
+												<Controller
+													control={ control }
+													name="github_info_cards_unauthenticated"
+													render={ ( { field } ) => (
+														<ToggleControl
+															checked={ !! field.value }
+															label={ __( 'Use GitHub without a token (not recommended)', 'wp-plugin-info-card' ) }
+															help={ __( 'Limited to 60 requests per hour and public repositories only.', 'wp-plugin-info-card' ) }
+															onChange={ ( value ) => {
+																field.onChange( value );
+																clearErrors( 'github_info_cards_token' );
+															} }
+															disabled={ saving || revoking }
+														/>
+													) }
+												/>
+											</div>
+										)
+									}
 								</>
 							)
 						}
@@ -366,7 +454,7 @@ const GitHubInfoCards = () => {
 							) : (
 								tableContent
 							) }
-							{ apiValid && getRatesTable() }
+							{ ( apiValid || unauthenticatedActive ) && getRatesTable() }
 							<div className="wppic-admin-panel-area__section">
 								{ saveButton() }
 							</div>

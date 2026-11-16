@@ -22,7 +22,7 @@
 	"composer:guard": "php bin/add-composer-guards.php",
     "start": "wp-scripts start --blocks-manifest --env mode=development",
     "dev": "wp-scripts start --blocks-manifest --env mode=development",
-    "build": "wp-scripts build --blocks-manifest --env mode=production && npm run composer:guard",
+    "build": "wp-scripts build --blocks-manifest --env mode=production",
     "zip": "wp-scripts plugin-zip"
   },
   "files": [

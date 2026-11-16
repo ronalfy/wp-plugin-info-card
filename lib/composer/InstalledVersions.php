@@ -11,6 +11,10 @@
  */
 
 namespace Composer;
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 use Composer\Autoload\ClassLoader;
 use Composer\Semver\VersionParser;
