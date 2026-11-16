@@ -26,6 +26,9 @@
         "szepeviktor/phpstan-wordpress": "^2.0"
     },
     "scripts": {
-        "phpstan": "phpstan analyse -c phpstan.dist.neon --memory-limit=2G"
+        "phpstan": "phpstan analyse -c phpstan.dist.neon --memory-limit=2G",
+        "post-autoload-dump": [
+            "@php bin/add-composer-guards.php"
+        ]
     }
 }
