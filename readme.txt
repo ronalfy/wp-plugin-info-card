@@ -2,8 +2,8 @@
 Contributors: briKou, ronalfy
 Tags: cards, card, github, showcase, embed
 Requires at least: 6.9
-Tested up to: 7.1
-Stable tag: 6.4.4
+Tested up to: 7.2
+Stable tag: 6.4.5
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -208,6 +208,11 @@ Yes, this video shows you how:
 7. WordPress.org Profile badges displaying in a grid.
 
 == Changelog ==
+
+= 6.4.5 =
+* Released 2026-11-16
+* Removing references to old DLX site and documentation.
+* Updating docs and GitHub token help to point to right location.
 
 = 6.4.4 =
 * Released 2026-11-01
@@ -678,5 +683,5 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 == Upgrade Notice ==
 
-= 6.4.4 =
-Fixes: Pasting in a GitHub repo in the editor would cause an unresolved error. Releases/downloads would never be retrieved due to a deprecated has_downloads key. New: Adding ratings and support cards to the admin.
+= 6.4.5 =
+Removing references to old DLX site and documentation. Updating docs and GitHub token help to point to right location as far as help.
