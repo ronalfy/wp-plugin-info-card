@@ -94,7 +94,7 @@ class Functions {
 	 * @return bool true if installed, false if not.
 	 */
 	public static function is_edd_installed() {
-		return Functions::is_activated( 'easy-digital-downloads/easy-digital-downloads.php' ) || Functions::is_activated( 'easy-digital-downloads-pro/easy-digital-downloads.php' );
+		return self::is_activated( 'easy-digital-downloads/easy-digital-downloads.php' ) || self::is_activated( 'easy-digital-downloads-pro/easy-digital-downloads.php' );
 	}
 
 	/**
@@ -496,6 +496,19 @@ class Functions {
 			$all_plugins         = apply_filters( 'all_plugins', get_plugins() );
 			$active_plugins      = array();
 			$plugin_info         = get_site_transient( 'update_plugins' );
+
+			// Playground and fresh sites have no update_plugins data until WordPress checks api.wordpress.org.
+			$plugin_info_missing = ! is_object( $plugin_info ) || empty( $plugin_info->checked );
+			if ( $plugin_info_missing && ! get_site_transient( 'wppic_update_plugins_failed' ) ) {
+				if ( ! function_exists( 'wp_update_plugins' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/update.php';
+				}
+				wp_update_plugins();
+				$plugin_info = get_site_transient( 'update_plugins' );
+				if ( ! is_object( $plugin_info ) || empty( $plugin_info->checked ) ) {
+					set_site_transient( 'wppic_update_plugins_failed', 1, HOUR_IN_SECONDS );
+				}
+			}
 
 			// Get active plugins.
 			foreach ( $all_plugins as $file => $plugin ) {

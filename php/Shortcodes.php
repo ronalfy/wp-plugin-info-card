@@ -641,6 +641,18 @@ class Shortcodes {
 		// Get plugin data for active plugins.
 		$plugins_on_org = Functions::get_active_plugins_with_data();
 
+		if ( empty( $plugins_on_org ) ) {
+			wp_send_json_success(
+				array(
+					'page'                => 1,
+					'more_results'        => false,
+					'plugins'             => array(),
+					'num_plugins'         => 0,
+					'percentage_complete' => 100,
+				)
+			);
+		}
+
 		// Get pagination.
 		$per_page = 5;
 		$page     = isset( $request['page'] ) ? absint( $request['page'] ) : 1;
