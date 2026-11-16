@@ -14,14 +14,14 @@
 <!--    existing user on the site or to create a new user. -->
 <!-- 7. WordPress will then import each of the posts, pages, comments, categories, etc. -->
 <!--    contained in this file into your site. -->
-<!-- generator="WordPress/7.1.4" created="2026-11-16 23:51" -->
+<!-- generator="WordPress/7.1.4" created="2026-11-16 23:57" -->
 <rss xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:wp="http://wordpress.org/export/1.2/" version="2.0">
 
 <channel>
 	<title>WP Plugin Info Card Demo</title>
 	<link>https://plugininfocard.local</link>
 	<description>One plugin to showcase many types of plugin and GitHub cards</description>
-	<pubDate>Mon, 16 Nov 2026 23:51:05 +0000</pubDate>
+	<pubDate>Mon, 16 Nov 2026 23:57:28 +0000</pubDate>
 	<language>en-US</language>
 	<wp:wxr_version>1.2</wp:wxr_version>
 	<wp:base_site_url>https://plugininfocard.local</wp:base_site_url>
@@ -61,7 +61,7 @@
 
 		<item>
 		<title><![CDATA[Custom Styles]]></title>
-		<link>https://plugininfocard.local/2026/10/wp-global-styles-twentytwentyfive/</link>
+		<link>https://plugininfocard.local/wp-global-styles-twentytwentyfive/</link>
 		<pubDate>Sat, 17 Oct 2026 23:44:17 +0000</pubDate>
 		<dc:creator><![CDATA[ronalfy]]></dc:creator>
 		<guid isPermaLink="false">https://plugininfocard.local/2026/10/wp-global-styles-twentytwentyfive/</guid>
@@ -86,7 +86,7 @@
 						</item>
 					<item>
 		<title><![CDATA[Navigation]]></title>
-		<link>https://plugininfocard.local/2026/10/navigation/</link>
+		<link>https://plugininfocard.local/navigation/</link>
 		<pubDate>Sat, 17 Oct 2026 23:44:18 +0000</pubDate>
 		<dc:creator><![CDATA[ronalfy]]></dc:creator>
 		<guid isPermaLink="false">https://plugininfocard.local/2026/10/navigation/</guid>
@@ -114,7 +114,7 @@
 														</item>
 					<item>
 		<title><![CDATA[Menu]]></title>
-		<link>https://plugininfocard.local/2026/10/menu/</link>
+		<link>https://plugininfocard.local/menu/</link>
 		<pubDate>Sat, 17 Oct 2026 23:48:35 +0000</pubDate>
 		<dc:creator><![CDATA[ronalfy]]></dc:creator>
 		<guid isPermaLink="false">https://plugininfocard.local/?p=7</guid>
@@ -142,7 +142,7 @@
 														</item>
 					<item>
 		<title><![CDATA[Footer]]></title>
-		<link>https://plugininfocard.local/2026/10/footer/</link>
+		<link>https://plugininfocard.local/footer/</link>
 		<pubDate>Sat, 17 Oct 2026 23:48:35 +0000</pubDate>
 		<dc:creator><![CDATA[ronalfy]]></dc:creator>
 		<guid isPermaLink="false">https://plugininfocard.local/2026/10/footer/</guid>
@@ -250,13 +250,7 @@
 
 <!-- wp:generateblocks/element {"uniqueId":"0063a389","tagName":"div","styles":{"backgroundColor":"color-mix(in oklch, var(\u002d\u002dwp\u002d\u002dpreset\u002d\u002dcolor\u002d\u002daccent-6, color-mix(in srgb, currentColor 20%, transparent)), #fff 32%)","paddingTop":"48px","paddingBottom":"48px"},"css":".gb-element-0063a389{background-color:var(\u002d\u002dwp\u002d\u002dpreset\u002d\u002dcolor\u002d\u002daccent-6,color-mix(in srgb,currentColor 20%,transparent));background-color:color-mix(in oklch,var(\u002d\u002dwp\u002d\u002dpreset\u002d\u002dcolor\u002d\u002daccent-6,color-mix(in srgb,currentColor 20%,transparent)),#fff 32%);padding-bottom:48px;padding-top:48px}","align":"full","className":"alignfull"} -->
 <div class="gb-element-0063a389 alignfull"><!-- wp:generateblocks/element {"uniqueId":"1afada83","tagName":"div","styles":{"maxWidth":"900px","marginLeft":"auto","marginRight":"auto"},"css":".gb-element-1afada83{margin-left:auto;margin-right:auto;max-width:900px}"} -->
-<div class="gb-element-1afada83"><!-- wp:mediaron/alerts-dlx-alert {"alertTitle":"Edit This Post to View the Shortcodes and Blocks","buttonText":"Edit this Post","buttonUrl":"https://plugininfocard.local/edit","buttonHasUrl":true,"icon":"\u003csvg xmlns=\u0022http://www.w3.org/2000/svg\u0022 width=\u002216\u0022 height=\u002216\u0022 fill=\u0022currentColor\u0022 class=\u0022bi bi-check-circle-fill\u0022 viewBox=\u00220 0 16 16\u0022\u003e\u003cpath d=\u0022M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z\u0022\u003e\u003c/path\u003e\u003c/svg\u003e","uniqueId":"alerts-dlx-6b4508a5"} -->
-<!-- wp:paragraph {"placeholder":""} -->
-<p><a href="/edit">Edit This Post</a></p>
-<!-- /wp:paragraph -->
-<!-- /wp:mediaron/alerts-dlx-alert -->
-
-<!-- wp:heading -->
+<div class="gb-element-1afada83"><!-- wp:heading -->
 <h2 class="wp-block-heading">Standard Plugin Cards Using a Slim Card Format</h2>
 <!-- /wp:heading -->
 
@@ -425,8 +419,8 @@
 		<wp:post_id>12</wp:post_id>
 		<wp:post_date><![CDATA[2026-10-17 23:56:18]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2026-10-17 23:56:18]]></wp:post_date_gmt>
-		<wp:post_modified><![CDATA[2026-11-16 20:22:29]]></wp:post_modified>
-		<wp:post_modified_gmt><![CDATA[2026-11-16 20:22:29]]></wp:post_modified_gmt>
+		<wp:post_modified><![CDATA[2026-11-16 23:57:15]]></wp:post_modified>
+		<wp:post_modified_gmt><![CDATA[2026-11-16 23:57:15]]></wp:post_modified_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
 		<wp:ping_status><![CDATA[closed]]></wp:ping_status>
 		<wp:post_name><![CDATA[front-page]]></wp:post_name>
