@@ -3,7 +3,7 @@ Contributors: briKou, ronalfy
 Tags: cards, card, github, showcase, embed
 Requires at least: 6.9
 Tested up to: 7.2
-Stable tag: 6.4.8
+Stable tag: 6.4.9
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -208,6 +208,10 @@ Yes, this video shows you how:
 7. WordPress.org Profile badges displaying in a grid.
 
 == Changelog ==
+
+= 6.4.9 =
+* Released 2026-11-16
+* Fix: Site-wide plugins would populate empty in certain situations, specifically on WP Playground. This fixes potential fatals with empty site data.
 
 = 6.4.8 =
 * Released 2026-11-16
@@ -688,5 +692,5 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 == Upgrade Notice ==
 
-= 6.4.8 =
-New: You can now enable GitHub cards without a personal access token. This is useful for quick tests or demonstrations.
+= 6.4.9 =
+New: You can now enable GitHub cards without a personal access token. This is useful for quick tests or demonstrations. Fix: Site-wide plugins would populate empty in certain situations, specifically on WP Playground. This fixes potential fatals with empty site data. Tested successfully up to WordPress 7.2 Beta 5.
