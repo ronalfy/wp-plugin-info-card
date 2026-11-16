@@ -27,7 +27,7 @@
         "date_format": "F j, Y",
         "time_format": "g:i a",
         "start_of_week": "1",
-        "permalink_structure": "/%year%/%monthnum%/%postname%/",
+        "permalink_structure": "/%postname%/",
         "category_base": "",
         "tag_base": "",
         "default_comment_status": "open",
@@ -69,7 +69,7 @@
             "content": [
                 {
                     "type": "wxr",
-                    "source": "https://github.com/blueprint.wxr",
+                    "source": "https://raw.githubusercontent.com/ronalfy/wp-plugin-info-card/refs/heads/dev/blueprint-content.xml",
                     "authorsMode": "map",
                     "authorsMap": {
                         "ronalfy": "admin"
