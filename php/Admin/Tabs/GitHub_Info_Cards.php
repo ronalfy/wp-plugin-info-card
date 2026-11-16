@@ -99,16 +99,27 @@ class GitHub_Info_Cards {
 
 		$enable_github_info_cards = (bool) filter_input( INPUT_POST, 'enable_github_info_cards', FILTER_VALIDATE_BOOLEAN );
 		$github_info_cards_token  = sanitize_text_field( filter_input( INPUT_POST, 'github_info_cards_token', FILTER_DEFAULT ) );
+		$unauthenticated          = (bool) filter_input( INPUT_POST, 'github_info_cards_unauthenticated', FILTER_VALIDATE_BOOLEAN );
+
+		// A stored token always uses authenticated requests.
+		if ( ! empty( $github_info_cards_token ) ) {
+			$unauthenticated = false;
+		}
+
+		if ( $unauthenticated ) {
+			$github_info_cards_token = '';
+		}
 
 		$limits = $this->get_github_rate_limits( $github_info_cards_token );
 
 		// SAve options.
-		$options                                     = Options::get_options( false, true );
-		$options['enable_github_info_cards']         = $enable_github_info_cards;
-		$options['github_info_cards_token']          = $github_info_cards_token;
-		$options['github_info_cards_rate_limit']     = $limits['rate_limit'];
-		$options['github_info_cards_rate_remaining'] = $limits['rate_remaining'];
-		$options['github_info_cards_rate_reset']     = $limits['rate_reset'];
+		$options                                      = Options::get_options( false, true );
+		$options['enable_github_info_cards']          = $enable_github_info_cards;
+		$options['github_info_cards_token']           = $github_info_cards_token;
+		$options['github_info_cards_unauthenticated'] = $unauthenticated;
+		$options['github_info_cards_rate_limit']      = $limits['rate_limit'];
+		$options['github_info_cards_rate_remaining']  = $limits['rate_remaining'];
+		$options['github_info_cards_rate_reset']      = $limits['rate_reset'];
 		Options::update_options( $options );
 
 		// Get options for return.
@@ -132,12 +143,13 @@ class GitHub_Info_Cards {
 			);
 		}
 
-		$options                                     = Options::get_options( false, true );
-		$options['enable_github_info_cards']         = false;
-		$options['github_info_cards_token']          = '';
-		$options['github_info_cards_rate_limit']     = 0;
-		$options['github_info_cards_rate_remaining'] = 0;
-		$options['github_info_cards_rate_reset']     = 0;
+		$options                                      = Options::get_options( false, true );
+		$options['enable_github_info_cards']          = false;
+		$options['github_info_cards_token']           = '';
+		$options['github_info_cards_unauthenticated'] = false;
+		$options['github_info_cards_rate_limit']      = 0;
+		$options['github_info_cards_rate_remaining']  = 0;
+		$options['github_info_cards_rate_reset']      = 0;
 		Options::update_options( $options );
 
 		wp_send_json_success(
@@ -163,9 +175,17 @@ class GitHub_Info_Cards {
 			$maybe_token = '';
 		}
 
-		// IF GitHub enabled and we have a token, add the rate limit.
+		$unauthenticated = ! empty( $options['github_info_cards_unauthenticated'] ) && empty( $options['github_info_cards_token'] );
+
+		// Refresh the rate limit for a token, or for anonymous public requests.
 		if ( $options['enable_github_info_cards'] && ! empty( $options['github_info_cards_token'] ) ) {
 			$limits                                      = $this->get_github_rate_limits( $options['github_info_cards_token'] );
+			$options['github_info_cards_rate_limit']     = $limits['rate_limit'];
+			$options['github_info_cards_rate_remaining'] = $limits['rate_remaining'];
+			$options['github_info_cards_rate_reset']     = $limits['rate_reset'];
+			Options::update_options( $options );
+		} elseif ( $options['enable_github_info_cards'] && $unauthenticated ) {
+			$limits                                      = $this->get_github_rate_limits( '' );
 			$options['github_info_cards_rate_limit']     = $limits['rate_limit'];
 			$options['github_info_cards_rate_remaining'] = $limits['rate_remaining'];
 			$options['github_info_cards_rate_reset']     = $limits['rate_reset'];
@@ -194,13 +214,17 @@ class GitHub_Info_Cards {
 	 * @return array The GitHub rate limits.
 	 */
 	public function get_github_rate_limits( $github_info_cards_token ) {
+		$headers = array();
+		// Omit Authorization when no token is stored. An empty credential is a 401.
+		if ( ! empty( $github_info_cards_token ) ) {
+			$headers['Authorization'] = 'token ' . $github_info_cards_token;
+		}
+
 		// Let's try to authenticate with GitHub.
 		$response = wp_safe_remote_get(
 			'https://api.github.com/rate_limit',
 			array(
-				'headers' => array(
-					'Authorization' => 'token ' . $github_info_cards_token,
-				),
+				'headers' => $headers,
 			)
 		);
 		if ( is_wp_error( $response ) ) {
@@ -216,7 +240,9 @@ class GitHub_Info_Cards {
 		if ( 401 === $error_code || 404 === $error_code ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'Invalid GitHub API token.', 'wp-plugin-info-card' ),
+					'message' => ! empty( $github_info_cards_token )
+						? __( 'Invalid GitHub API token.', 'wp-plugin-info-card' )
+						: __( 'Could not authenticate with GitHub.', 'wp-plugin-info-card' ),
 				)
 			);
 		}

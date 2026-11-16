@@ -12,7 +12,7 @@ Technical fit:
 |-------|----------|
 | Data | [`php/GitHub.php`](../php/GitHub.php) hooks `wppic_add_api_parser` with type `github` |
 | Cache | Same `wppic_api_parser()` funnel as plugins/themes |
-| Feature flag | `enable_github_info_cards` + GitHub token; disabled when token/rate limit unavailable (`Options::is_github_info_cards_enabled()`) |
+| Feature flag | `enable_github_info_cards` plus a GitHub token, or `github_info_cards_unauthenticated` with no token. Disabled when neither path is available (`Options::is_github_info_cards_enabled()`) |
 | Surfaces | Blocks `github-info-card` / `github-info-card-grid`, shortcode `[github-info-card]`, admin tab, lazy-load JS, dedicated SCSS |
 
 GitHub markup does **not** reuse `templates/wppic-template-plugin*.php`; it has its own HTML (largely inlined via shortcode rendering) and [`src/scss/github-cards.scss`](../src/scss/github-cards.scss).
@@ -30,7 +30,7 @@ GitHub markup does **not** reuse `templates/wppic-template-plugin*.php`; it has 
 | Block render bridge | `php/Blocks.php` |
 | Lazy load | `src/js/github-info-card/github-info-card-lazy-load.js` |
 
-GitHub REST usage (authenticated with the stored token): repo metadata, `.github/FUNDING.yml`, releases, and rate-limit checks for the admin auth flow.
+GitHub REST usage: repo metadata, `.github/FUNDING.yml`, releases, and rate-limit checks. Requests send the stored token. With **Use GitHub without a token** enabled and no token stored, those requests omit `Authorization` and use GitHub’s unauthenticated limit (60 requests per hour, public repositories only).
 
 ## Spin-off assessment
 
