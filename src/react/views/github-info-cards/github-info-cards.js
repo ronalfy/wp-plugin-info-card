@@ -103,7 +103,7 @@ const GitHubInfoCards = () => {
 	const onSubmit = async ( formData ) => {
 		setSaving( true );
 		try {
-			const tokenValue = formData.github_info_cards_token || '';
+			const tokenValue = ( formData.github_info_cards_token || '' ).trim();
 			const unauthenticated = ! tokenValue.length && !! formData.github_info_cards_unauthenticated;
 			const response = await SendCommand( 'wppic_authenticate_with_github', {
 				nonce: wppicAdminGitHubInfoCards.saveNonce,
@@ -213,7 +213,7 @@ const GitHubInfoCards = () => {
 		if ( loading ) {
 			return null;
 		}
-		const tokenValue = formValues?.github_info_cards_token || '';
+		const tokenValue = ( formValues?.github_info_cards_token || '' ).trim();
 		const hasTokenField = tokenValue.length > 0;
 		const useWithoutToken = !! formValues?.github_info_cards_unauthenticated;
 		if ( apiValid && hasTokenField ) {
@@ -360,7 +360,7 @@ const GitHubInfoCards = () => {
 										}
 									</div>
 									{
-										! ( formValues.github_info_cards_token || '' ).length && (
+										! ( formValues.github_info_cards_token || '' ).trim().length && (
 											<div className="wppic-admin-row">
 												<Controller
 													control={ control }
