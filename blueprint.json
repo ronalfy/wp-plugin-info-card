@@ -1,171 +1,145 @@
 {
-    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-    "version": 2,
-    "phpVersion": "8.3",
-    "wordpressVersion": "latest",
-    "applicationOptions": {
-        "wordpress-playground": {
-            "landingPage": "/",
-            "login": true,
-            "networkAccess": true
-        }
+    "preferredVersions": {
+        "php": "8.3",
+        "wp": "latest"
     },
-    "activeTheme": "twentytwentyfive",
-    "plugins": [
-        "generateblocks",
-        "mediaron-block-shortcuts-for-gb",
-        "alerts-dlx",
-        "slash-edit",
-        "wp-plugin-info-card"
-    ],
-    "contentBaseline": "empty",
-    "siteOptions": {
-        "blogname": "WP Plugin Info Card Demo",
-        "blogdescription": "One plugin to showcase many types of plugin and GitHub cards",
-        "timezone_string": "",
-        "gmt_offset": "0",
-        "date_format": "F j, Y",
-        "time_format": "g:i a",
-        "start_of_week": "1",
-        "permalink_structure": "/%postname%/",
-        "category_base": "",
-        "tag_base": "",
-        "default_comment_status": "open",
-        "default_ping_status": "open",
-        "comment_moderation": "1",
-        "comment_previously_approved": "1",
-        "comment_max_links": "2",
-        "moderation_keys": "",
-        "disallowed_keys": "",
-        "comment_registration": "",
-        "require_name_email": "1",
-        "show_comments_cookies_opt_in": "1",
-        "thread_comments": "1",
-        "thread_comments_depth": "5",
-        "page_comments": "",
-        "comments_per_page": "50",
-        "default_comments_page": "newest",
-        "comment_order": "asc",
-        "close_comments_for_old_posts": "1",
-        "close_comments_days_old": "1",
-        "show_avatars": "1",
-        "avatar_rating": "G",
-        "avatar_default": "mystery",
-        "thumbnail_size_w": "150",
-        "thumbnail_size_h": "150",
-        "thumbnail_crop": "1",
-        "medium_size_w": "300",
-        "medium_size_h": "300",
-        "medium_large_size_w": "768",
-        "medium_large_size_h": "0",
-        "large_size_w": "1024",
-        "large_size_h": "1024",
-        "uploads_use_yearmonth_folders": "1",
-        "generateblocks_version": "2.5.1"
+    "features": {
+        "networking": true
     },
-    "additionalStepsAfterExecution": [
+    "landingPage": "/",
+    "steps": [
         {
-            "step": "importContent",
-            "content": [
-                {
-                    "type": "wxr",
-                    "source": "https://raw.githubusercontent.com/ronalfy/wp-plugin-info-card/refs/heads/dev/blueprint-content.xml",
-                    "authorsMode": "map",
-                    "authorsMap": {
-                        "ronalfy": "admin"
-                    },
-                    "defaultAuthorUsername": "admin",
-                    "urlsMode": "rewrite",
-                    "staticAssets": "fetch"
-                }
-            ]
-        },
-        {
-            "step": "runPHP",
-            "code": {
-                "filename": "front-page.php",
-                "content": "<?php require '/wordpress/wp-load.php'; $page = get_page_by_path( 'front-page', OBJECT, 'page' ); if ( $page instanceof WP_Post ) { update_option( 'page_on_front', (int) $page->ID ); update_option( 'show_on_front', 'page' ); }"
-            }
+            "step": "login",
+            "username": "admin",
+            "password": "password"
         },
         {
             "step": "setSiteOptions",
             "options": {
-                "theme_mods_twentytwentyfive": {
-                    "custom_css_post_id": -1
-                },
-                "wppic_plugin_generateblocks": {
-                    "url": "https://wordpress.org/plugins/generateblocks/",
-                    "name": "GenerateBlocks",
-                    "slug": "generateblocks",
-                    "version": "2.5.1",
-                    "author": "Tom",
-                    "author_profile": "https://profiles.wordpress.org/edge22/",
-                    "contributors": "edge22",
-                    "tested": "7.1.4",
-                    "requires": "6.7",
-                    "rating": 98,
-                    "num_ratings": 122,
-                    "ratings": {
-                        "5": 115,
-                        "4": 1,
-                        "3": 4,
-                        "2": 0,
-                        "1": 2
-                    },
-                    "downloaded": 200000,
-                    "active_installs": 200000,
-                    "last_updated_human_time": "6 days",
-                    "last_updated": "2026-11-10 2:44pm GMT",
-                    "last_updated_mk": "2026-11-10 2:44pm GMT",
-                    "added": "2020-05-19",
-                    "homepage": "https://generateblocks.com",
-                    "short_description": "A small collection of lightweight WordPress blocks that can accomplish nearly anything.",
-                    "download_link": "https://downloads.wordpress.org/plugin/generateblocks.2.5.1.zip",
-                    "donate_link": "https://generatepress.com",
-                    "icons": {
-                        "1x": "https://ps.w.org/generateblocks/assets/icon.svg?rev=3744275",
-                        "svg": "https://ps.w.org/generateblocks/assets/icon.svg?rev=3744275"
-                    },
-                    "banners": {
-                        "low": "https://ps.w.org/generateblocks/assets/banner-772x250.png?rev=3744275",
-                        "high": "https://ps.w.org/generateblocks/assets/banner-1544x500.png?rev=3744275"
-                    },
-                    "screenshots": [],
-                    "is_edd": false,
-                    "review_url": "",
-                    "requires_php": "7.2"
-                },
-                "wppic_settings": {
-                    "default_layout": "card",
-                    "colorscheme": "default",
-                    "widget": false,
-                    "ajax": false,
-                    "enqueue": false,
-                    "credit": false,
-                    "cache_expiration": "3600",
-                    "ping_rest_api_interval": "14",
-                    "enable_screenshots": "1",
-                    "enable_local_screenshots": "",
-                    "skip_animated_gifs": "1",
-                    "enable_local_screenshots_download_missing": "",
-                    "enable_local_screenshots_keep_current": "",
-                    "enable_local_screenshots_cli_command": "",
-                    "screenshots_table_version": "0.0.0",
-                    "enable_edd": false,
-                    "edd_default_icon_id": "0",
-                    "edd_default_banner_id": "0",
-                    "edd_default_icon_url": "",
-                    "edd_default_banner_url": "",
-                    "enable_rest_api": false,
-                    "enable_custom_plugins": true,
-                    "enable_github_info_cards": true,
-                    "github_info_cards_token": "",
-                    "github_info_cards_unauthenticated": true,
-                    "github_info_cards_rate_limit": "60",
-                    "github_info_cards_rate_remaining": "60",
-                    "github_info_cards_rate_reset": "1794863772"
-                }
+                "blogname": "WP Plugin Info Card Demo",
+                "blogdescription": "One plugin to showcase many types of plugin and GitHub cards",
+                "timezone_string": "",
+                "gmt_offset": "0",
+                "date_format": "F j, Y",
+                "time_format": "g:i a",
+                "start_of_week": "1",
+                "permalink_structure": "/%postname%/",
+                "category_base": "",
+                "tag_base": "",
+                "default_comment_status": "open",
+                "default_ping_status": "open",
+                "comment_moderation": "1",
+                "comment_previously_approved": "1",
+                "comment_max_links": "2",
+                "moderation_keys": "",
+                "disallowed_keys": "",
+                "comment_registration": "",
+                "require_name_email": "1",
+                "show_comments_cookies_opt_in": "1",
+                "thread_comments": "1",
+                "thread_comments_depth": "5",
+                "page_comments": "",
+                "comments_per_page": "50",
+                "default_comments_page": "newest",
+                "comment_order": "asc",
+                "close_comments_for_old_posts": "1",
+                "close_comments_days_old": "1",
+                "show_avatars": "1",
+                "avatar_rating": "G",
+                "avatar_default": "mystery",
+                "thumbnail_size_w": "150",
+                "thumbnail_size_h": "150",
+                "thumbnail_crop": "1",
+                "medium_size_w": "300",
+                "medium_size_h": "300",
+                "medium_large_size_w": "768",
+                "medium_large_size_h": "0",
+                "large_size_w": "1024",
+                "large_size_h": "1024",
+                "uploads_use_yearmonth_folders": "1",
+                "generateblocks_version": "2.5.1"
             }
+        },
+        {
+            "step": "installTheme",
+            "themeData": {
+                "resource": "wordpress.org/themes",
+                "slug": "twentytwentyfive"
+            },
+            "options": {
+                "activate": true
+            }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "wordpress.org/plugins",
+                "slug": "generateblocks"
+            },
+            "options": {
+                "activate": true
+            }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "wordpress.org/plugins",
+                "slug": "mediaron-block-shortcuts-for-gb"
+            },
+            "options": {
+                "activate": true
+            }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "wordpress.org/plugins",
+                "slug": "alerts-dlx"
+            },
+            "options": {
+                "activate": true
+            }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "wordpress.org/plugins",
+                "slug": "slash-edit"
+            },
+            "options": {
+                "activate": true
+            }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "wordpress.org/plugins",
+                "slug": "wp-plugin-info-card"
+            },
+            "options": {
+                "activate": true
+            }
+        },
+        {
+            "step": "importWxr",
+            "file": {
+                "resource": "url",
+                "url": "https://raw.githubusercontent.com/ronalfy/wp-plugin-info-card/refs/heads/dev/blueprint-content.xml"
+            },
+            "rewriteUrls": true,
+            "fetchAttachments": true,
+            "authorsMap": {
+                "ronalfy": "admin"
+            },
+            "defaultAuthorUsername": "admin"
+        },
+        {
+            "step": "runPHP",
+            "code": "<?php require '/wordpress/wp-load.php'; $page = get_page_by_path( 'front-page', OBJECT, 'page' ); if ( $page instanceof WP_Post ) { update_option( 'page_on_front', (int) $page->ID ); update_option( 'show_on_front', 'page' ); }"
+        },
+        {
+            "step": "runPHP",
+            "code": "<?php require '/wordpress/wp-load.php'; update_option( 'theme_mods_twentytwentyfive', maybe_unserialize( 'a:1:{s:18:\"custom_css_post_id\";i:-1;}' ) ); update_option( 'wppic_plugin_generateblocks', maybe_unserialize( 'O:8:\"stdClass\":28:{s:3:\"url\";s:45:\"https://wordpress.org/plugins/generateblocks/\";s:4:\"name\";s:14:\"GenerateBlocks\";s:4:\"slug\";s:14:\"generateblocks\";s:7:\"version\";s:5:\"2.5.1\";s:6:\"author\";s:3:\"Tom\";s:14:\"author_profile\";s:38:\"https://profiles.wordpress.org/edge22/\";s:12:\"contributors\";s:6:\"edge22\";s:6:\"tested\";s:5:\"7.1.4\";s:8:\"requires\";s:3:\"6.7\";s:6:\"rating\";i:98;s:11:\"num_ratings\";i:122;s:7:\"ratings\";a:5:{i:5;i:115;i:4;i:1;i:3;i:4;i:2;i:0;i:1;i:2;}s:10:\"downloaded\";i:200000;s:15:\"active_installs\";i:200000;s:23:\"last_updated_human_time\";s:6:\"6 days\";s:12:\"last_updated\";s:21:\"2026-11-10 2:44pm GMT\";s:15:\"last_updated_mk\";s:21:\"2026-11-10 2:44pm GMT\";s:5:\"added\";s:10:\"2020-05-19\";s:8:\"homepage\";s:26:\"https://generateblocks.com\";s:17:\"short_description\";s:87:\"A small collection of lightweight WordPress blocks that can accomplish nearly anything.\";s:13:\"download_link\";s:63:\"https://downloads.wordpress.org/plugin/generateblocks.2.5.1.zip\";s:11:\"donate_link\";s:25:\"https://generatepress.com\";s:5:\"icons\";a:2:{s:2:\"1x\";s:59:\"https://ps.w.org/generateblocks/assets/icon.svg?rev=3744275\";s:3:\"svg\";s:59:\"https://ps.w.org/generateblocks/assets/icon.svg?rev=3744275\";}s:7:\"banners\";a:2:{s:3:\"low\";s:69:\"https://ps.w.org/generateblocks/assets/banner-772x250.png?rev=3744275\";s:4:\"high\";s:70:\"https://ps.w.org/generateblocks/assets/banner-1544x500.png?rev=3744275\";}s:11:\"screenshots\";a:0:{}s:6:\"is_edd\";b:0;s:10:\"review_url\";s:0:\"\";s:12:\"requires_php\";s:3:\"7.2\";}' ) ); update_option( 'wppic_settings', maybe_unserialize( 'a:28:{s:14:\"default_layout\";s:4:\"card\";s:11:\"colorscheme\";s:7:\"default\";s:6:\"widget\";b:0;s:4:\"ajax\";b:0;s:7:\"enqueue\";b:0;s:6:\"credit\";b:0;s:16:\"cache_expiration\";s:4:\"3600\";s:22:\"ping_rest_api_interval\";s:2:\"14\";s:18:\"enable_screenshots\";s:1:\"1\";s:24:\"enable_local_screenshots\";s:0:\"\";s:18:\"skip_animated_gifs\";s:1:\"1\";s:41:\"enable_local_screenshots_download_missing\";s:0:\"\";s:37:\"enable_local_screenshots_keep_current\";s:0:\"\";s:36:\"enable_local_screenshots_cli_command\";s:0:\"\";s:25:\"screenshots_table_version\";s:5:\"0.0.0\";s:10:\"enable_edd\";b:0;s:19:\"edd_default_icon_id\";s:1:\"0\";s:21:\"edd_default_banner_id\";s:1:\"0\";s:20:\"edd_default_icon_url\";s:0:\"\";s:22:\"edd_default_banner_url\";s:0:\"\";s:15:\"enable_rest_api\";b:0;s:21:\"enable_custom_plugins\";b:1;s:24:\"enable_github_info_cards\";b:1;s:23:\"github_info_cards_token\";s:0:\"\";s:33:\"github_info_cards_unauthenticated\";b:1;s:28:\"github_info_cards_rate_limit\";s:2:\"60\";s:32:\"github_info_cards_rate_remaining\";s:2:\"60\";s:28:\"github_info_cards_rate_reset\";s:10:\"1794863772\";}' ) ); ?>"
         }
     ]
 }
