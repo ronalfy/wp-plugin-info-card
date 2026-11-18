@@ -294,13 +294,15 @@ class Shortcodes {
 				'permission_callback' => '__return_true',
 			)
 		);
+		$query_route_args = $this->get_query_route_args();
 		register_rest_route(
 			'wppic/v1',
 			'/get_query',
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_query_shortcode' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'rest_check_permissions' ),
+				'args'                => $query_route_args,
 			)
 		);
 		register_rest_route(
@@ -309,7 +311,8 @@ class Shortcodes {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_query_shortcode_v2' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'rest_check_permissions' ),
+				'args'                => $query_route_args,
 			)
 		);
 		register_rest_route(
@@ -832,59 +835,171 @@ class Shortcodes {
 	}
 
 	/**
-	 * Retrieve the query shortcode.
+	 * Shared arguments for the directory query routes.
+	 *
+	 * @return array Route args.
 	 */
-	public function get_query_shortcode() {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Public read-only card render. No state change.
-		$attrs  = array(
-			'cols'        => isset( $_GET['cols'] ) ? absint( wp_unslash( $_GET['cols'] ) ) : 0,
-			'per_page'    => isset( $_GET['per_page'] ) ? absint( wp_unslash( $_GET['per_page'] ) ) : 0,
-			'type'        => isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : '',
-			'image'       => isset( $_GET['image'] ) ? esc_url_raw( wp_unslash( $_GET['image'] ) ) : '',
-			'align'       => isset( $_GET['align'] ) ? sanitize_key( wp_unslash( $_GET['align'] ) ) : '',
-			'containerid' => isset( $_GET['containerid'] ) ? sanitize_text_field( wp_unslash( $_GET['containerid'] ) ) : '',
-			'margin'      => isset( $_GET['margin'] ) ? sanitize_text_field( wp_unslash( $_GET['margin'] ) ) : '',
-			'clear'       => isset( $_GET['clear'] ) ? sanitize_key( wp_unslash( $_GET['clear'] ) ) : '',
-			'expiration'  => isset( $_GET['expiration'] ) ? absint( wp_unslash( $_GET['expiration'] ) ) : '',
-			'ajax'        => isset( $_GET['ajax'] ) ? sanitize_key( wp_unslash( $_GET['ajax'] ) ) : '',
-			'scheme'      => isset( $_GET['scheme'] ) ? sanitize_key( wp_unslash( $_GET['scheme'] ) ) : '',
-			'layout'      => isset( $_GET['layout'] ) ? sanitize_key( wp_unslash( $_GET['layout'] ) ) : '',
-			'sortby'      => isset( $_GET['sortby'] ) ? sanitize_key( wp_unslash( $_GET['sortby'] ) ) : '',
-			'sort'        => isset( $_GET['sort'] ) ? sanitize_text_field( wp_unslash( $_GET['sort'] ) ) : '',
+	private function get_query_route_args() {
+		$text = static function ( $value ) {
+			$value = sanitize_text_field( (string) $value );
+			if ( strlen( $value ) > 100 ) {
+				$value = substr( $value, 0, 100 );
+			}
+			return $value;
+		};
+		$key  = static function ( $value ) {
+			return sanitize_key( (string) $value );
+		};
+
+		return array(
+			'type'        => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'per_page'    => array(
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'search'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'tag'         => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'author'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'user'        => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'browse'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'sortby'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'sort'        => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'searchBy'    => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'cols'        => array(
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'image'       => array(
+				'type'              => 'string',
+				'sanitize_callback' => 'esc_url_raw',
+			),
+			'align'       => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'containerid' => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'margin'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $text,
+			),
+			'clear'       => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'expiration'  => array(
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'ajax'        => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'scheme'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
+			'layout'      => array(
+				'type'              => 'string',
+				'sanitize_callback' => $key,
+			),
 		);
-		$browse = isset( $_GET['browse'] ) ? sanitize_text_field( wp_unslash( $_GET['browse'] ) ) : '';
-		$search = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
-		$tag    = isset( $_GET['tag'] ) ? sanitize_text_field( wp_unslash( $_GET['tag'] ) ) : '';
-		$user   = isset( $_GET['user'] ) ? sanitize_text_field( wp_unslash( $_GET['user'] ) ) : '';
-		$author = isset( $_GET['author'] ) ? sanitize_text_field( wp_unslash( $_GET['author'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-		if ( ! empty( $browse ) ) {
-			$attrs['browse'] = $browse;
-		}
-		if ( ! empty( $search ) ) {
-			$attrs['search'] = $search;
-		}
-		if ( ! empty( $tag ) ) {
-			$attrs['tag'] = $tag;
-		}
-		if ( ! empty( $user ) ) {
-			$attrs['user'] = $user;
-		}
-		if ( ! empty( $author ) ) {
-			$attrs['author'] = $author;
+	}
+
+	/**
+	 * Run one directory query for the block editor.
+	 *
+	 * v2 only applies the field selected by searchBy. v1 accepts each field that is present.
+	 * The editor draws cards from api_response, so this does not render shortcode HTML.
+	 *
+	 * @param WP_REST_Request $request         REST request.
+	 * @param bool            $apply_search_by Whether to gate fields with searchBy.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private function query_directory_for_rest( $request, $apply_search_by ) {
+		$type = sanitize_key( (string) $request->get_param( 'type' ) );
+		if ( ! in_array( $type, array( 'plugin', 'theme' ), true ) ) {
+			return new \WP_Error(
+				'wppic_query_type_invalid',
+				__( 'Query type must be plugin or theme.', 'wp-plugin-info-card' ),
+				array( 'status' => 400 )
+			);
 		}
 
-		$sortby = $attrs['sortby'];
-		$sort   = $attrs['sort'];
+		$per_page = absint( $request->get_param( 'per_page' ) );
+		if ( $per_page < 1 || $per_page > 24 ) {
+			$per_page = 24;
+		}
 
-		// Build the query.
+		$search_by = sanitize_key( (string) $request->get_param( 'searchBy' ) );
+		$search    = '';
+		$tag       = '';
+		$author    = '';
+		$user      = '';
+		$browse    = '';
+
+		if ( $apply_search_by ) {
+			if ( 'general' === $search_by ) {
+				$search = sanitize_text_field( (string) $request->get_param( 'search' ) );
+			} elseif ( 'tag' === $search_by ) {
+				$tag = sanitize_text_field( (string) $request->get_param( 'tag' ) );
+			} elseif ( 'author' === $search_by ) {
+				$author = sanitize_text_field( (string) $request->get_param( 'author' ) );
+			} elseif ( 'favorites' === $search_by ) {
+				$user = sanitize_text_field( (string) $request->get_param( 'user' ) );
+			} elseif ( 'category' === $search_by ) {
+				$browse = sanitize_text_field( (string) $request->get_param( 'browse' ) );
+			}
+		} else {
+			$search = sanitize_text_field( (string) $request->get_param( 'search' ) );
+			$tag    = sanitize_text_field( (string) $request->get_param( 'tag' ) );
+			$author = sanitize_text_field( (string) $request->get_param( 'author' ) );
+			$user   = sanitize_text_field( (string) $request->get_param( 'user' ) );
+			$browse = sanitize_text_field( (string) $request->get_param( 'browse' ) );
+		}
+
+		$sortby = sanitize_key( (string) $request->get_param( 'sortby' ) );
+		$sort   = strtoupper( sanitize_text_field( (string) $request->get_param( 'sort' ) ) );
+		if ( 'DESC' !== $sort ) {
+			$sort = 'ASC';
+		}
+
 		$query_args = array(
-			'search'   => $attrs['search'],
-			'tag'      => $attrs['tag'],
-			'author'   => $attrs['author'],
-			'user'     => $attrs['user'],
-			'browse'   => $attrs['browse'],
-			'per_page' => $attrs['per_page'],
+			'search'   => $search,
+			'tag'      => $tag,
+			'author'   => $author,
+			'user'     => $user,
+			'browse'   => $browse,
+			'per_page' => $per_page,
 			'fields'   => array(
 				'name'              => true,
 				'requires'          => true,
@@ -904,49 +1019,33 @@ class Shortcodes {
 				'downloadlink'      => true,
 			),
 		);
-		$type       = $attrs['type'];
-		$query_args = apply_filters( 'wppic_api_query', $query_args, $type, $attrs );
+		$query_args = apply_filters( 'wppic_api_query', $query_args, $type, $request->get_params() );
 
-		$api = '';
-
-		// Plugins query.
 		if ( 'plugin' === $type ) {
-			$type = 'plugins';
 			require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
-			$api = plugins_api( 'query_plugins', $query_args );
-		}
-
-		// Themes query.
-		if ( 'theme' === $type ) {
-			$type = 'themes';
+			$api       = plugins_api( 'query_plugins', $query_args );
+			$list_type = 'plugins';
+		} else {
 			require_once ABSPATH . 'wp-admin/includes/theme.php';
-			$api = themes_api( 'query_themes', $query_args );
+			$api       = themes_api( 'query_themes', $query_args );
+			$list_type = 'themes';
 		}
 
-		// Begin sort.
-		$sort_results = array();
-		if ( 'plugins' === $type ) {
-			$sort_results = $api->plugins ?? null;
-		} elseif ( 'themes' === $type ) {
-			$sort_results = $api->themes ?? null;
+		if ( is_wp_error( $api ) ) {
+			$data = $api->get_error_data();
+			if ( ! is_array( $data ) || ! isset( $data['status'] ) ) {
+				$api->add_data( array( 'status' => 500 ) );
+			}
+			return $api;
 		}
-		if ( 'plugins' === $type && ! is_wp_error( $api ) && ! empty( $api ) && 'none' !== $sortby ) {
-			$plugins = $api->plugins;
+
+		$sort_results = 'plugins' === $list_type ? ( $api->plugins ?? null ) : ( $api->themes ?? null );
+		if ( ! empty( $sort_results ) && 'none' !== $sortby && is_array( $sort_results ) ) {
 			array_multisort(
-				array_column( $plugins, $sortby ),
+				array_column( $sort_results, $sortby ),
 				'DESC' === $sort ? SORT_DESC : SORT_ASC,
-				$plugins
+				$sort_results
 			);
-			$sort_results = $plugins;
-		}
-		if ( 'themes' === $type && ! is_wp_error( $api ) && ! empty( $api ) && 'none' !== $sortby ) {
-			$themes = $api->themes;
-			array_multisort(
-				array_column( $themes, $sortby ),
-				'DESC' === $sort ? SORT_DESC : SORT_ASC,
-				$themes
-			);
-			$sort_results = $themes;
 		}
 
 		/**
@@ -954,168 +1053,50 @@ class Shortcodes {
 		 *
 		 * Sorted results ready for display.
 		 *
-		 * @param array $sort_results The sorted results.
-		 * @param string $type The type of query (plugins, themes).
-		 * @param string $sortby The field to sort by.
-		 * @param string $sort The sort order (ASC, DESC).
+		 * @param array  $sort_results The sorted results.
+		 * @param string $list_type    The type of query (plugins, themes).
+		 * @param string $sortby       The field to sort by.
+		 * @param string $sort         The sort order (ASC, DESC).
 		 */
-		$sort_results = apply_filters( 'wppic_query_results', $sort_results, $type, $sortby, $sort );
+		$sort_results = apply_filters( 'wppic_query_results', $sort_results, $list_type, $sortby, $sort );
 
-		if ( ! is_wp_error( $sort_results ) && ! empty( $sort_results ) ) {
-
-			wp_send_json_success(
-				array(
-					'api_response' => json_decode( json_encode( $sort_results ) ),
-					'html'         => self::shortcode_query_function( $attrs ),
-				)
+		if ( is_wp_error( $sort_results ) || empty( $sort_results ) ) {
+			return new \WP_Error(
+				'wppic_query_empty',
+				__( 'No data found.', 'wp-plugin-info-card' ),
+				array( 'status' => 404 )
 			);
 		}
-		wp_send_json_error( array( 'message' => 'No data found' ) );
-		die( '' );
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'data'    => array(
+					'api_response' => json_decode( wp_json_encode( $sort_results ) ),
+					'html'         => '',
+				),
+			)
+		);
 	}
 
 	/**
 	 * Retrieve the query shortcode.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 * @return WP_REST_Response|WP_Error
 	 */
-	public function get_query_shortcode_v2() {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Public read-only card render. No state change.
-		$attrs  = array(
-			'cols'        => isset( $_GET['cols'] ) ? absint( wp_unslash( $_GET['cols'] ) ) : 0,
-			'per_page'    => isset( $_GET['per_page'] ) ? absint( wp_unslash( $_GET['per_page'] ) ) : 0,
-			'type'        => isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : '',
-			'image'       => isset( $_GET['image'] ) ? esc_url_raw( wp_unslash( $_GET['image'] ) ) : '',
-			'align'       => isset( $_GET['align'] ) ? sanitize_key( wp_unslash( $_GET['align'] ) ) : '',
-			'containerid' => isset( $_GET['containerid'] ) ? sanitize_text_field( wp_unslash( $_GET['containerid'] ) ) : '',
-			'margin'      => isset( $_GET['margin'] ) ? sanitize_text_field( wp_unslash( $_GET['margin'] ) ) : '',
-			'clear'       => isset( $_GET['clear'] ) ? sanitize_key( wp_unslash( $_GET['clear'] ) ) : '',
-			'expiration'  => isset( $_GET['expiration'] ) ? absint( wp_unslash( $_GET['expiration'] ) ) : '',
-			'ajax'        => isset( $_GET['ajax'] ) ? sanitize_key( wp_unslash( $_GET['ajax'] ) ) : '',
-			'scheme'      => isset( $_GET['scheme'] ) ? sanitize_key( wp_unslash( $_GET['scheme'] ) ) : '',
-			'layout'      => isset( $_GET['layout'] ) ? sanitize_key( wp_unslash( $_GET['layout'] ) ) : '',
-			'sortby'      => isset( $_GET['sortby'] ) ? sanitize_key( wp_unslash( $_GET['sortby'] ) ) : '',
-			'sort'        => isset( $_GET['sort'] ) ? sanitize_text_field( wp_unslash( $_GET['sort'] ) ) : '',
-			'searchBy'    => isset( $_GET['searchBy'] ) ? sanitize_key( wp_unslash( $_GET['searchBy'] ) ) : '',
-		);
-		$browse = isset( $_GET['browse'] ) ? sanitize_text_field( wp_unslash( $_GET['browse'] ) ) : '';
-		$search = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
-		$tag    = isset( $_GET['tag'] ) ? sanitize_text_field( wp_unslash( $_GET['tag'] ) ) : '';
-		$user   = isset( $_GET['user'] ) ? sanitize_text_field( wp_unslash( $_GET['user'] ) ) : '';
-		$author = isset( $_GET['author'] ) ? sanitize_text_field( wp_unslash( $_GET['author'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-		if ( ! empty( $browse ) && 'category' === $attrs['searchBy'] ) {
-			$attrs['browse'] = $browse;
-		}
-		if ( ! empty( $search ) && 'general' === $attrs['searchBy'] ) {
-			$attrs['search'] = $search;
-		}
-		if ( ! empty( $tag ) && 'tag' === $attrs['searchBy'] ) {
-			$attrs['tag'] = $tag;
-		}
-		if ( ! empty( $user ) && 'favorites' === $attrs['searchBy'] ) {
-			$attrs['user'] = $user;
-		}
-		if ( ! empty( $author ) && 'author' === $attrs['searchBy'] ) {
-			$attrs['author'] = $author;
-		}
+	public function get_query_shortcode( $request ) {
+		return $this->query_directory_for_rest( $request, false );
+	}
 
-		$sortby = $attrs['sortby'];
-		$sort   = $attrs['sort'];
-
-		// Build the query.
-		$query_args = array(
-			'search'   => $attrs['search'] ?? '',
-			'tag'      => $attrs['tag'] ?? '',
-			'author'   => $attrs['author'] ?? '',
-			'user'     => $attrs['user'] ?? '',
-			'browse'   => $attrs['browse'] ?? '',
-			'per_page' => $attrs['per_page'],
-			'fields'   => array(
-				'name'              => true,
-				'requires'          => true,
-				'tested'            => true,
-				'compatibility'     => true,
-				'screenshot_url'    => true,
-				'ratings'           => true,
-				'rating'            => true,
-				'num_ratings'       => true,
-				'homepage'          => true,
-				'sections'          => true,
-				'description'       => true,
-				'short_description' => true,
-				'banners'           => true,
-				'downloaded'        => true,
-				'last_updated'      => true,
-				'downloadlink'      => true,
-			),
-		);
-		$type       = $attrs['type'];
-		$query_args = apply_filters( 'wppic_api_query', $query_args, $type, $attrs );
-
-		$api = '';
-
-		// Plugins query.
-		if ( 'plugin' === $type ) {
-			$type = 'plugins';
-			require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
-			$api = plugins_api( 'query_plugins', $query_args );
-		}
-
-		// Themes query.
-		if ( 'theme' === $type ) {
-			$type = 'themes';
-			require_once ABSPATH . 'wp-admin/includes/theme.php';
-			$api = themes_api( 'query_themes', $query_args );
-		}
-
-		// Begin sort.
-		$sort_results = array();
-		if ( 'plugins' === $type ) {
-			$sort_results = $api->plugins ?? null;
-		} elseif ( 'themes' === $type ) {
-			$sort_results = $api->themes ?? null;
-		}
-		if ( 'plugins' === $type && ! is_wp_error( $api ) && ! empty( $api ) && 'none' !== $sortby ) {
-			$plugins = $api->plugins;
-			array_multisort(
-				array_column( $plugins, $sortby ),
-				'DESC' === $sort ? SORT_DESC : SORT_ASC,
-				$plugins
-			);
-			$sort_results = $plugins;
-		}
-		if ( 'themes' === $type && ! is_wp_error( $api ) && ! empty( $api ) && 'none' !== $sortby ) {
-			$themes = $api->themes;
-			array_multisort(
-				array_column( $themes, $sortby ),
-				'DESC' === $sort ? SORT_DESC : SORT_ASC,
-				$themes
-			);
-			$sort_results = $themes;
-		}
-
-		/**
-		 * Filter: wppic_query_results
-		 *
-		 * Sorted results ready for display.
-		 *
-		 * @param array $sort_results The sorted results.
-		 * @param string $type The type of query (plugins, themes).
-		 * @param string $sortby The field to sort by.
-		 * @param string $sort The sort order (ASC, DESC).
-		 */
-		$sort_results = apply_filters( 'wppic_query_results', $sort_results, $type, $sortby, $sort );
-
-		if ( ! is_wp_error( $sort_results ) && ! empty( $sort_results ) ) {
-
-			wp_send_json_success(
-				array(
-					'api_response' => json_decode( json_encode( $sort_results ) ),
-					'html'         => self::shortcode_query_function( $attrs ),
-				)
-			);
-		}
-		wp_send_json_error( array( 'message' => 'No data found' ) );
-		die( '' );
+	/**
+	 * Retrieve the v2 query shortcode.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_query_shortcode_v2( $request ) {
+		return $this->query_directory_for_rest( $request, true );
 	}
 
 	/**
@@ -1572,6 +1553,11 @@ class Shortcodes {
 		$cols   = absint( $cols );
 		if ( is_numeric( $cols ) && $cols > 0 && $cols < 4 ) {
 			$column = true;
+		}
+
+		$per_page = absint( $per_page );
+		if ( $per_page < 1 || $per_page > 24 ) {
+			$per_page = 24;
 		}
 
 		// Build the query.
