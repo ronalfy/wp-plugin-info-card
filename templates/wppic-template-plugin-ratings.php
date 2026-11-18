@@ -122,6 +122,7 @@ if ( isset( $wppic_data->is_edd ) && $wppic_data->is_edd ) {
 						</div>
 					</div>
 				</a>
+				<?php if ( isset( $wppic_data->active_installs ) ) : ?>
 				<a href="<?php echo esc_url( $installs_url ); ?>">
 					<div class="wp-pic-bar-item">
 						<div class="wp-pic-plugin-screenshots-meta-item-svg">
@@ -134,6 +135,7 @@ if ( isset( $wppic_data->is_edd ) && $wppic_data->is_edd ) {
 						</div>
 					</div>
 				</a>
+				<?php endif; ?>
 			</div>
 			<div class="wp-pic-download">
 				<span><a href="<?php echo esc_url_raw( $wppic_data->download_link ); ?>"><?php echo esc_html( $download_label ); ?></a></span>

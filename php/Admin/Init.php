@@ -219,7 +219,16 @@ class Init {
 		$plugin_ids = array_map( 'absint', $plugin_ids );
 
 		// Begin import.
-		$payload       = Import_Export::generate_export_payload( $plugin_ids );
+		$payload = Import_Export::generate_export_payload( $plugin_ids );
+		if ( is_wp_error( $payload ) ) {
+			wp_send_json_error(
+				array(
+					'message'     => $payload->get_error_message(),
+					'type'        => 'error',
+					'dismissable' => true,
+				)
+			);
+		}
 		$filename_slug = sanitize_file_name( 'wppic-custom-plugins-export.json' );
 
 		// Output json filename (prompt save as).

@@ -4,7 +4,6 @@
  *
  * @since 1.2.0
  */
-import apiFetch from '@wordpress/api-fetch';
 import { safeDecodeURIComponent } from '@wordpress/url';
 import { __ } from '@wordpress/i18n';
 import lozad from 'lozad';
@@ -46,36 +45,51 @@ import lozad from 'lozad';
 	let initialized = false;
 	let observer = null;
 
+	const showCardError = ( element ) => {
+		const errorElement = document.createElement( 'div' );
+		errorElement.textContent = __( 'GitHub Card data could not be loaded.', 'wp-plugin-info-card' );
+		element.replaceWith( errorElement );
+	};
+
 	const fetchCard = async ( element ) => {
 		const attributesKey = element.dataset.username + '_' + element.dataset.repo;
 		const data = {
 			username: safeDecodeURIComponent( element.dataset.username ),
 			repo: safeDecodeURIComponent( element.dataset.repo ),
-			nonce: safeDecodeURIComponent( element.dataset.nonce ),
+			token: safeDecodeURIComponent( element.dataset.token || '' ),
 			cardAttributes: {},
 		};
 		if ( wppicGithubInfoCardLazyLoad.cardAttributes[ attributesKey ] ) {
 			data.cardAttributes = wppicGithubInfoCardLazyLoad.cardAttributes[ attributesKey ];
 		}
-		const response = await apiFetch( {
-			url: DEFAULTS.endpoint,
-			parse: true,
-			headers: {
-				'X-WP-Nonce': wppicGithubInfoCardLazyLoad.restNonce,
-				'Content-Type': 'application/json',
-			},
-			method: 'POST',
-			body: JSON.stringify( data ),
-		} );
-		if ( ! response.html ) {
-			const errorElement = document.createElement( 'div' );
-			errorElement.innerHTML = __( 'GitHub Card data could not be loaded.', 'wp-plugin-info-card' );
-			element.replaceWith( errorElement );
-			return;
+		try {
+			// Native fetch does not attach a session nonce. Cached guest markup can
+			// carry a nonce that is invalid for a signed-in visitor, and WordPress
+			// rejects that header before the repository token is checked.
+			const httpResponse = await fetch( DEFAULTS.endpoint, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					Accept: 'application/json',
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify( data ),
+			} );
+			if ( ! httpResponse.ok ) {
+				showCardError( element );
+				return;
+			}
+			const response = await httpResponse.json();
+			if ( ! response.html ) {
+				showCardError( element );
+				return;
+			}
+			element.outerHTML = response.html;
+			bindAvatarFallbacks();
+			return response.html;
+		} catch ( error ) {
+			showCardError( element );
 		}
-		element.outerHTML = response.html;
-		bindAvatarFallbacks();
-		return response.html;
 	};
 
 	const init = () => {

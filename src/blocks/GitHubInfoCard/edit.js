@@ -81,6 +81,7 @@ const GitHubInfoCard = ( props ) => {
 
 	const [ data, setData ] = useState( assetData );
 	const [ noData, setNoData ] = useState( false );
+	const [ noDataMessage, setNoDataMessage ] = useState( '' );
 	const [ cardLoading, setCardLoading ] = useState( false );
 	const [ loading, setLoading ] = useState( attributes.loading );
 	const [ mainInputField, setMainInputField ] = useState( null );
@@ -186,22 +187,58 @@ const GitHubInfoCard = ( props ) => {
 		setLoading( false );
 		setCardLoading( true );
 		setNoData( false );
+		setNoDataMessage( '' );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_github_data';
 		axios
-			.get(
-				restUrl + `?username=${ username }&repo=${ repo }&force=true`,
-			)
+			.get( restUrl, {
+				params: {
+					username,
+					repo,
+					force: true,
+				},
+				headers: {
+					'X-WP-Nonce': wppic.rest_nonce,
+				},
+			} )
 			.then( ( response ) => {
 				if ( response.data.success ) {
 					// Now Set State
 					setData( response.data.data );
 					setAttributes( { assetData: response.data.data } );
-					setCardLoading( false );
 				} else {
+					setNoDataMessage( '' );
 					setNoData( true );
-					setCardLoading( false );
 					setLoading( true );
 				}
+			} )
+			.catch( ( error ) => {
+				const status = error?.response?.status;
+				const isAuthError = 401 === status || 403 === status;
+				const hasExistingCard = Array.isArray( data )
+					? 0 < data.length
+					: Boolean( data && 'object' === typeof data && 0 < Object.keys( data ).length );
+				setNoDataMessage(
+					isAuthError
+						? __(
+							'You are not allowed to load this card, or your editor session has expired. Reload the page and try again.',
+							'wp-plugin-info-card',
+						)
+						: (
+							error?.response?.data?.message ||
+							__(
+								'The card could not be loaded. Please try again.',
+								'wp-plugin-info-card',
+							)
+						),
+				);
+				setNoData( true );
+				// A failed refresh should return to the card and its toolbar. The setup form is only for a card that never loaded.
+				if ( ! hasExistingCard ) {
+					setLoading( true );
+				}
+			} )
+			.finally( () => {
+				setCardLoading( false );
 			} );
 	};
 	const pluginOnClick = ( assetSlug, assetType ) => {
@@ -578,10 +615,11 @@ const GitHubInfoCard = ( props ) => {
 								status="error"
 								isDismissible={ false }
 							>
-								{ __(
-									'No data found for the given slug.',
-									'wp-plugin-info-card',
-								) }
+								{ noDataMessage ||
+									__(
+										'No data found for the given slug.',
+										'wp-plugin-info-card',
+									) }
 							</Notice>
 						) }
 					</div>
@@ -598,6 +636,7 @@ const GitHubInfoCard = ( props ) => {
 								setAttributes( { loading: false } );
 								// Make sure the two fields are filled out.
 								if ( ! username || ! repo ) {
+									setNoDataMessage( '' );
 									setNoData( true );
 									return;
 								}
@@ -783,6 +822,14 @@ const GitHubInfoCard = ( props ) => {
 							`align${ align }`,
 						) }
 					>
+						{ noData && noDataMessage && (
+							<Notice
+								status="error"
+								isDismissible={ false }
+							>
+								{ noDataMessage }
+							</Notice>
+						) }
 						<div className="wppic-github-info-card-wrapper">
 							{ getShowTopBar() && (
 								<>

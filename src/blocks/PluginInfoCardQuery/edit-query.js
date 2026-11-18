@@ -6,9 +6,9 @@ import axios from 'axios';
 import classnames from 'classnames';
 const HtmlToReactParser = require( 'html-to-react' ).Parser;
 
-import { __} from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 
-const { useState, useEffect, Fragment, useCallback } = wp.element;
+const { useState, useEffect, Fragment, useCallback, useRef } = wp.element;
 
 const {
 	PanelBody,
@@ -54,26 +54,48 @@ import { Radio } from 'lucide-react';
 import NumbersComponent from '../components/Numbers';
 import { set, uniqueId } from 'lodash';
 
+/**
+ * Recover the search field from the attributes that were saved with the block.
+ *
+ * @param {Object} attrs Block attributes.
+ * @return {{searchBy: string, searchValue: string}} Saved search mode and value.
+ */
+const getSavedQuery = ( attrs ) => {
+	if ( attrs.tag ) {
+		return { searchBy: 'tag', searchValue: attrs.tag };
+	}
+	if ( attrs.author ) {
+		return { searchBy: 'author', searchValue: attrs.author };
+	}
+	if ( attrs.user ) {
+		return { searchBy: 'favorites', searchValue: attrs.user };
+	}
+	if ( attrs.browse ) {
+		return { searchBy: 'category', searchValue: '' };
+	}
+	return { searchBy: 'general', searchValue: attrs.search || '' };
+};
+
 const WP_Plugin_Card_Query = ( props ) => {
 	const { attributes, setAttributes } = props;
 
 	const generatedUniqueId = useInstanceId( WP_Plugin_Card_Query, 'wp-plugin-info-card-query' );
 
+	const savedQuery = getSavedQuery( attributes );
 	const [ loading, setLoading ] = useState( false );
 	const [ cardLoading, setCardLoading ] = useState( false );
 	const [ noData, setNoData ] = useState( false );
-	const [ searchBy, setSearchBy ] = useState( attributes.searchBy ?? 'general' );
-	const [ searchValue, setSearchValue ] = useState( '' );
+	const [ searchBy, setSearchBy ] = useState( savedQuery.searchBy );
+	const [ searchValue, setSearchValue ] = useState( savedQuery.searchValue );
 	const [ currentScheme, setCurrentScheme ] = useState( attributes.scheme );
 	const [ currentLayout, setCurrentLayout ] = useState( attributes.layout );
 	const [ itemSlugs, setItemSlugs ] = useState( attributes.itemSlugs );
-
+	const queryRequestId = useRef( 0 );
 
 	const {
 		assetData,
 		type,
 		slug,
-		html,
 		align,
 		image,
 		containerid,
@@ -99,11 +121,13 @@ const WP_Plugin_Card_Query = ( props ) => {
 	} = attributes;
 
 	useEffect( () => {
-		// If we have HTML, then we don't need to load it.
-		if ( ! html ) {
-			setLoading( true );
-		} else {
+		// The query route stores cards in assetData and leaves html empty.
+		// An empty html value is not an unconfigured block.
+		const hasSavedCards = Array.isArray( assetData ) && assetData.length > 0;
+		if ( hasSavedCards ) {
 			setLoading( false );
+		} else {
+			setLoading( true );
 		}
 
 		// Apply defaults.
@@ -122,18 +146,50 @@ const WP_Plugin_Card_Query = ( props ) => {
 
 	const pluginOnClick = ( event ) => {
 		if ( '' !== type ) {
+			// Two edits can start two queries before the spinner paints. A late
+			// failure must not clear cards saved by the newer request.
+			const requestId = queryRequestId.current + 1;
+			queryRequestId.current = requestId;
 			setCardLoading( true );
 			const rest_url = wppic.rest_url + 'wppic/v2/get_query/';
 			axios
-				.get(
-					rest_url +
-						`?type=${ attributes.type }&slug=${ attributes.slug }&align=${ attributes.align }&image=${ attributes.image }&containerid=${ attributes.containerid }&margin=${ attributes.margin }&clear=${ attributes.clear }&expiration=${ attributes.expiration }&ajax=${ attributes.ajax }&scheme=${ attributes.scheme }&layout=${ attributes.layout }&search=${ attributes.search }&tag=${ attributes.tag }&author=${ attributes.author }&user=${ attributes.user }&browse=${ attributes.browse }&per_page=${ attributes.per_page }&cols=${ attributes.cols }}&sortby=${ attributes.sortby }&sort=${ attributes.sort }&searchBy=${ searchBy }`,
-				)
+				.get( rest_url, {
+					params: {
+						type: attributes.type,
+						slug: attributes.slug,
+						align: attributes.align,
+						image: attributes.image,
+						containerid: attributes.containerid,
+						margin: attributes.margin,
+						clear: attributes.clear,
+						expiration: attributes.expiration,
+						ajax: attributes.ajax,
+						scheme: attributes.scheme,
+						layout: attributes.layout,
+						search: attributes.search,
+						tag: attributes.tag,
+						author: attributes.author,
+						user: attributes.user,
+						browse: attributes.browse,
+						per_page: attributes.per_page,
+						cols: attributes.cols,
+						sortby: attributes.sortby,
+						sort: attributes.sort,
+						searchBy,
+					},
+					headers: {
+						'X-WP-Nonce': wppic.rest_nonce,
+					},
+				} )
 				.then( ( response ) => {
+					if ( requestId !== queryRequestId.current ) {
+						return;
+					}
 					// Now Set State
 					setLoading( false );
 					setCardLoading( false );
 					if ( response.data.success ) {
+						setNoData( false );
 						setAttributes( {
 							assetData: response.data.data.api_response,
 							html: response.data.data.html,
@@ -146,6 +202,19 @@ const WP_Plugin_Card_Query = ( props ) => {
 						setNoData( true );
 						setLoading( true );
 					}
+				} )
+				.catch( () => {
+					if ( requestId !== queryRequestId.current ) {
+						return;
+					}
+					setLoading( false );
+					setCardLoading( false );
+					setAttributes( {
+						assetData: [],
+						html: '',
+					} );
+					setNoData( true );
+					setLoading( true );
 				} );
 		}
 	};
