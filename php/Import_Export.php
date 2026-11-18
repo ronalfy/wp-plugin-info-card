@@ -470,8 +470,8 @@ class Import_Export {
 	/**
 	 * Authorize a public plugin JSON request.
 	 *
-	 * Unknown slugs, disabled plugins, bad passcodes, and slugs over the
-	 * failure limit all receive the same error.
+	 * Unknown slugs, disabled plugins, bad passcodes, and callers over the
+	 * failure limit for this slug all receive the same error.
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @return true|\WP_Error True when the passcode matches an enabled plugin.
@@ -567,10 +567,13 @@ class Import_Export {
 	}
 
 	/**
-	 * Whether this slug is already out of failed attempts.
+	 * Whether this caller is already out of failed attempts for the slug.
+	 *
+	 * Other callers keep their own counters, so one client cannot lock out
+	 * a consumer that still has the correct passcode.
 	 *
 	 * @param string $slug Sanitized plugin slug.
-	 * @return bool True when the slug counter is at the limit.
+	 * @return bool True when this caller is at the limit for the slug.
 	 */
 	private static function plugin_json_failures_capped( $slug ) {
 		$bucket = self::plugin_json_failure_bucket( self::plugin_json_failure_key( $slug ) );
@@ -579,7 +582,7 @@ class Import_Export {
 	}
 
 	/**
-	 * Count one failed lookup against the slug.
+	 * Count one failed lookup against this caller and slug.
 	 *
 	 * @param string $slug Sanitized plugin slug.
 	 * @return void
@@ -589,13 +592,28 @@ class Import_Export {
 	}
 
 	/**
-	 * Transient name for a slug failure counter.
+	 * Transient name for one caller's failures against one slug.
 	 *
 	 * @param string $slug Sanitized plugin slug.
 	 * @return string Transient key.
 	 */
 	private static function plugin_json_failure_key( $slug ) {
-		return 'wppic_json_fail_slug_' . md5( (string) $slug );
+		return 'wppic_json_fail_' . md5( self::plugin_json_client_ip() . '|' . (string) $slug );
+	}
+
+	/**
+	 * Connection address used only to separate failure counters.
+	 *
+	 * Forwarded-for headers are ignored. A missing address shares one bucket
+	 * so those requests cannot skip the limit.
+	 *
+	 * @return string Validated IP, or an empty string when none was provided.
+	 */
+	private static function plugin_json_client_ip() {
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip          = filter_var( $remote_addr, FILTER_VALIDATE_IP );
+
+		return is_string( $ip ) ? $ip : '';
 	}
 
 	/**
