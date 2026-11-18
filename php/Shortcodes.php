@@ -824,7 +824,8 @@ class Shortcodes {
 			'containerid' => isset( $_GET['containerid'] ) ? sanitize_text_field( wp_unslash( $_GET['containerid'] ) ) : '',
 			'margin'      => isset( $_GET['margin'] ) ? sanitize_text_field( wp_unslash( $_GET['margin'] ) ) : '',
 			'clear'       => isset( $_GET['clear'] ) ? sanitize_key( wp_unslash( $_GET['clear'] ) ) : '',
-			'expiration'  => isset( $_GET['expiration'] ) ? absint( wp_unslash( $_GET['expiration'] ) ) : '',
+			// Public callers cannot choose the cache lifetime. The parser default is 720 minutes.
+			'expiration'  => '',
 			'ajax'        => isset( $_GET['ajax'] ) ? sanitize_key( wp_unslash( $_GET['ajax'] ) ) : '',
 			'scheme'      => isset( $_GET['scheme'] ) ? sanitize_key( wp_unslash( $_GET['scheme'] ) ) : '',
 			'layout'      => isset( $_GET['layout'] ) ? sanitize_key( wp_unslash( $_GET['layout'] ) ) : '',
@@ -1796,18 +1797,21 @@ class Shortcodes {
 			$screenshots = $new_screenshots;
 		}
 
-		// Active installs.
-		if ( $asset_data['active_installs'] >= 1000000 ) {
-			// Get number of million.
-			$count_in_million = round( $asset_data['active_installs'] / 1000000, 1 );
+		// Active installs. Omitted when this response must not include license totals.
+		$active_installs_text = '';
+		if ( isset( $asset_data['active_installs'] ) ) {
+			if ( $asset_data['active_installs'] >= 1000000 ) {
+				// Get number of million.
+				$count_in_million = round( $asset_data['active_installs'] / 1000000, 1 );
 
-			$active_installs_text = sprintf(
-				/* Translators: %s is the number of million active installs */
-				_n( '%s+ Million', '%s+ Million', $count_in_million, 'wp-plugin-info-card' ),
-				number_format_i18n( $count_in_million )
-			);
-		} else {
-			$active_installs_text = number_format_i18n( $asset_data['active_installs'] ) . '+';
+				$active_installs_text = sprintf(
+					/* Translators: %s is the number of million active installs */
+					_n( '%s+ Million', '%s+ Million', $count_in_million, 'wp-plugin-info-card' ),
+					number_format_i18n( $count_in_million )
+				);
+			} else {
+				$active_installs_text = number_format_i18n( $asset_data['active_installs'] ) . '+';
+			}
 		}
 
 		// Build custom color styles.
@@ -2078,6 +2082,7 @@ class Shortcodes {
 								<a href="<?php echo esc_url( $asset_data['url'] ); ?>"><?php echo esc_html( $requires_label ); ?></a>
 								</div>
 							</div>
+							<?php if ( '' !== $active_installs_text ) : ?>
 							<div class="wp-pic-plugin-screenshots-meta-item">
 								<div class="wp-pic-plugin-screenshots-meta-item-svg">
 									<svg width="24" height="24"><use xlink:href="#wppic-icon-download-cloud"></use></svg>
@@ -2086,6 +2091,7 @@ class Shortcodes {
 								<a href="<?php echo esc_url( sprintf( 'https://wordpress.org/plugins/%s/advanced/', $asset_data['slug'] ) ); ?>"><?php echo esc_html( $active_installs_text ); ?></a>
 								</div>
 							</div>
+							<?php endif; ?>
 						</div>
 					</footer>
 				</div>

@@ -17,6 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EDD {
 
 	/**
+	 * License totals stay cached for 12 hours. Callers cannot shorten this.
+	 */
+	const LICENSE_STATS_TTL = 720 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Main class runner.
 	 *
 	 * @return Blocks.
@@ -33,6 +38,7 @@ class EDD {
 		// Only if EDD is enabled and software licensing is active.
 		if ( $edd_enabled && Functions::is_activated( 'edd-software-licensing/edd-software-licenses.php' ) ) {
 			add_filter( 'wppic_plugin_info', array( $this, 'add_edd_data' ), 10, 4 );
+			add_filter( 'wppic_api_data', array( $this, 'apply_license_stats' ), 10, 3 );
 			add_action( 'init', array( $this, 'init' ) );
 
 			// Modify downloads post type to support custom fields.
@@ -194,6 +200,7 @@ class EDD {
 		// Clear the cache.
 		delete_transient( $option_key );
 		delete_option( $option_key );
+		delete_transient( $this->license_stats_key( $post_id ) );
 	}
 
 	/**
@@ -459,27 +466,6 @@ class EDD {
 		// Set the plugin added date.
 		$existing_data['added'] = get_the_date( 'Y-m-d', $maybe_download->ID );
 
-		// Get total number of downloads for the plugin.
-		$existing_data['downloaded'] = get_post_meta( $maybe_download->ID, 'edd_sl_download_lifetime', true );
-
-		// Get the total number of active installs (active licenses) for the download.
-		if ( function_exists( 'edd_software_licensing' ) ) {
-			$args     = array(
-				'number'      => -1,
-				'download_id' => $maybe_download->ID,
-			);
-			$licenses = edd_software_licensing()->licenses_db->get_licenses( $args );
-
-			// Count the number of active licenses.
-			$active_installs = 0;
-			foreach ( $licenses as $license ) {
-				if ( 'active' === $license->status ) {
-					++$active_installs;
-				}
-			}
-			$existing_data['active_installs'] = $active_installs;
-		}
-
 		// Parse the readme and override if necessary.
 		if ( function_exists( '_edd_sl_get_readme_data' ) ) {
 			$readme_data = _edd_sl_get_readme_data( $readme_url );
@@ -582,5 +568,152 @@ class EDD {
 		$existing_data['is_edd'] = true;
 
 		return $existing_data;
+	}
+
+	/**
+	 * Attach or remove EDD license totals after the card cache is read.
+	 *
+	 * Anonymous REST responses never read or write the stats transient.
+	 * An editor REST request recounts. Every other request uses the cache
+	 * and fills it only when the transient is missing.
+	 *
+	 * @param mixed  $wppic_data Card data.
+	 * @param string $type       Asset type.
+	 * @param string $slug       Asset slug.
+	 *
+	 * @return mixed
+	 */
+	public function apply_license_stats( $wppic_data, $type, $slug ) {
+		if ( 'plugin' !== $type || ! is_object( $wppic_data ) ) {
+			return $wppic_data;
+		}
+		if ( empty( $wppic_data->is_edd ) || ! empty( $wppic_data->is_custom_plugin ) ) {
+			return $wppic_data;
+		}
+
+		$wppic_data = clone $wppic_data;
+		unset( $wppic_data->active_installs, $wppic_data->active_installs_raw, $wppic_data->downloaded );
+
+		$mode = $this->license_stats_mode();
+		if ( 'omit' === $mode || ! function_exists( 'edd_get_download' ) ) {
+			return $wppic_data;
+		}
+
+		$download = edd_get_download( $slug );
+		if ( ! $download || empty( $download->ID ) ) {
+			return $wppic_data;
+		}
+
+		$stats = ( 'live' === $mode )
+			? $this->refresh_license_stats( $download->ID )
+			: $this->get_cached_license_stats( $download->ID );
+
+		$wppic_data->active_installs = $stats['active_installs'];
+		$wppic_data->downloaded      = $stats['downloaded'];
+
+		return $wppic_data;
+	}
+
+	/**
+	 * Decide whether this request may see EDD license totals.
+	 *
+	 * @return string omit, live, or cache.
+	 */
+	private function license_stats_mode() {
+		$is_rest = defined( 'REST_REQUEST' ) && REST_REQUEST;
+		if ( $is_rest && current_user_can( 'edit_posts' ) ) {
+			return 'live';
+		}
+		if ( $is_rest ) {
+			return 'omit';
+		}
+		return 'cache';
+	}
+
+	/**
+	 * Transient key for one download's license totals.
+	 *
+	 * @param int $download_id Download ID.
+	 *
+	 * @return string
+	 */
+	private function license_stats_key( $download_id ) {
+		return 'wppic_edd_stats_' . absint( $download_id );
+	}
+
+	/**
+	 * Count active licenses and read the lifetime download total.
+	 *
+	 * @param int $download_id Download ID.
+	 *
+	 * @return array{active_installs:int,downloaded:int}
+	 */
+	private function collect_license_stats( $download_id ) {
+		$stats = array(
+			'active_installs' => 0,
+			'downloaded'      => absint( get_post_meta( $download_id, 'edd_sl_download_lifetime', true ) ),
+		);
+
+		if ( ! function_exists( 'edd_software_licensing' ) ) {
+			return $stats;
+		}
+
+		$licenses_db = edd_software_licensing()->licenses_db;
+		if ( ! is_object( $licenses_db ) ) {
+			return $stats;
+		}
+
+		// COUNT the active rows. Do not load every license with number -1.
+		$query_args = array(
+			'download_id' => absint( $download_id ),
+			'status'      => 'active',
+		);
+		if ( method_exists( $licenses_db, 'count' ) ) {
+			$active_installs = $licenses_db->count( $query_args );
+		} else {
+			$active_installs = $licenses_db->get_licenses( $query_args );
+		}
+		if ( is_numeric( $active_installs ) ) {
+			$stats['active_installs'] = absint( $active_installs );
+		}
+
+		return $stats;
+	}
+
+	/**
+	 * Return cached license totals, counting once when the cache is empty.
+	 *
+	 * @param int $download_id Download ID.
+	 *
+	 * @return array{active_installs:int,downloaded:int}
+	 */
+	private function get_cached_license_stats( $download_id ) {
+		$key    = $this->license_stats_key( $download_id );
+		$cached = get_transient( $key );
+		if ( is_array( $cached ) && isset( $cached['active_installs'], $cached['downloaded'] ) ) {
+			return array(
+				'active_installs' => absint( $cached['active_installs'] ),
+				'downloaded'      => absint( $cached['downloaded'] ),
+			);
+		}
+
+		$stats = $this->collect_license_stats( $download_id );
+		set_transient( $key, $stats, self::LICENSE_STATS_TTL );
+
+		return $stats;
+	}
+
+	/**
+	 * Recount license totals and replace the stats cache.
+	 *
+	 * @param int $download_id Download ID.
+	 *
+	 * @return array{active_installs:int,downloaded:int}
+	 */
+	private function refresh_license_stats( $download_id ) {
+		$stats = $this->collect_license_stats( $download_id );
+		set_transient( $this->license_stats_key( $download_id ), $stats, self::LICENSE_STATS_TTL );
+
+		return $stats;
 	}
 }

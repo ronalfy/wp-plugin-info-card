@@ -88,9 +88,11 @@ const PluginScreenshotsInfoCard = ( props ) => {
 		setCardLoading( true );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		axios
-			.get(
-				restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`
-			)
+			.get( restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`, {
+				headers: {
+					'X-WP-Nonce': wppic.rest_nonce,
+				},
+			} )
 			.then( ( response ) => {
 				// Now Set State
 				setAttributes( { assetData: response.data.data } );

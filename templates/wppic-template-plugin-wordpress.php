@@ -37,11 +37,14 @@ if ( ! empty( $image ) ) {
 	$logo = '<span class="wp-pic-plugin-icon" data="no-image"></span>';
 }
 
-// Active installs.
-if ( $wppic_data->active_installs >= 1000000 ) {
-	$active_installs_text = _x( '1+ Million', 'Active plugin installs', 'wp-plugin-info-card' );
-} else {
-	$active_installs_text = number_format_i18n( $wppic_data->active_installs ) . '+';
+// Active installs. Omitted when this response must not include license totals.
+$active_installs_text = '';
+if ( isset( $wppic_data->active_installs ) ) {
+	if ( $wppic_data->active_installs >= 1000000 ) {
+		$active_installs_text = _x( '1+ Million', 'Active plugin installs', 'wp-plugin-info-card' );
+	} else {
+		$active_installs_text = number_format_i18n( $wppic_data->active_installs ) . '+';
+	}
 }
 
 $download_label = esc_html__( 'Download', 'wp-plugin-info-card' );
@@ -99,9 +102,11 @@ if ( isset( $wppic_data->author_profile ) && ! empty( $wppic_data->author_profil
 			<div class="wp-pic-column-updated">
 				<strong><?php esc_html_e( 'Last Updated:', 'wp-plugin-info-card' ); ?></strong> <?php /* Translators: %s is the time ago */ printf( esc_html__( '%s ago', 'wp-plugin-info-card' ), esc_html( human_time_diff( strtotime( $wppic_data->last_updated_mk ) ) ) ); ?>
 			</div>
+			<?php if ( '' !== $active_installs_text ) : ?>
 			<div class="wp-pic-column-downloaded">
 				<?php /* Translators: %s is the number of active installs */ printf( esc_html__( '%s Active Installs', 'wp-plugin-info-card' ), esc_html( $active_installs_text ) ); ?>
-			</div>	
+			</div>
+			<?php endif; ?>	
 			<div class="wp-pic-column-compatibility">
 				<span class="wp-pic-compatibility-compatible"><?php esc_html_e( 'Compatible with WordPress', 'wp-plugin-info-card' ); ?> <?php echo esc_html( $wppic_data->requires ); ?></span>
 			</div>

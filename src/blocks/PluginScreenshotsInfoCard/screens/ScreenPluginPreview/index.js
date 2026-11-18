@@ -41,9 +41,11 @@ const ScreenPluginPreview = ( props ) => {
 		setLoading( true );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		axios
-			.get(
-				restUrl + `?type=plugin&slug=${ encodeURIComponent( attributes.slug ) }`,
-			)
+			.get( restUrl + `?type=plugin&slug=${ encodeURIComponent( attributes.slug ) }`, {
+				headers: {
+					'X-WP-Nonce': wppic.rest_nonce,
+				},
+			} )
 			.then( ( response ) => {
 				if ( response.data.success ) {
 					// Set asset data.
