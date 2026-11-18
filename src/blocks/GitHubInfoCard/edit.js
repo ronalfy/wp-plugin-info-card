@@ -214,6 +214,9 @@ const GitHubInfoCard = ( props ) => {
 			.catch( ( error ) => {
 				const status = error?.response?.status;
 				const isAuthError = 401 === status || 403 === status;
+				const hasExistingCard = Array.isArray( data )
+					? 0 < data.length
+					: Boolean( data && 'object' === typeof data && 0 < Object.keys( data ).length );
 				setNoDataMessage(
 					isAuthError
 						? __(
@@ -229,7 +232,10 @@ const GitHubInfoCard = ( props ) => {
 						),
 				);
 				setNoData( true );
-				setLoading( true );
+				// A failed refresh should return to the card and its toolbar. The setup form is only for a card that never loaded.
+				if ( ! hasExistingCard ) {
+					setLoading( true );
+				}
 			} )
 			.finally( () => {
 				setCardLoading( false );
@@ -816,6 +822,14 @@ const GitHubInfoCard = ( props ) => {
 							`align${ align }`,
 						) }
 					>
+						{ noData && noDataMessage && (
+							<Notice
+								status="error"
+								isDismissible={ false }
+							>
+								{ noDataMessage }
+							</Notice>
+						) }
 						<div className="wppic-github-info-card-wrapper">
 							{ getShowTopBar() && (
 								<>
