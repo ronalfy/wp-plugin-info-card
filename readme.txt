@@ -3,7 +3,7 @@ Contributors: briKou, ronalfy
 Tags: cards, card, github, showcase, embed
 Requires at least: 6.9
 Tested up to: 7.2
-Stable tag: 6.4.9
+Stable tag: 6.5.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -208,6 +208,15 @@ Yes, this video shows you how:
 7. WordPress.org Profile badges displaying in a grid.
 
 == Changelog ==
+
+= 6.5.0 =
+* Released 2026-11-18
+* Security: This is a security release. Please update.
+* Security (GitHub Block and Shortcode): The GitHub data route now requires a user who can edit posts. Public GitHub cards must present the token created for that card, and they can no longer skip the cache. Public plugin and theme card routes no longer accept GitHub lookups. Before this, an anonymous request could spend the site's GitHub token allowance on a repository the caller chose.
+* Security (Query Block & Shortcode): Directory query routes now require a user who can edit posts, and each request is limited to 24 results. Before this, an anonymous search could make this site call WordPress.org for every result.
+* Security (EDD): Public REST card lookups no longer include Easy Digital Downloads license counts or lifetime download totals. Editors can still see those totals, and license counts no longer load every license row.
+* Security: Public card requests accept only plugin and theme slugs, at most 10 slugs, and can no longer set the cache lifetime or schedule a custom-plugin refresh.
+* Security: The opt-in custom plugin JSON endpoint now rejects unknown plugins, disabled exports, and a wrong passcode with the same response before any data is returned. Existing REST URLs that include the passcode keep working. A passcode may also be sent in the X-WPPIC-Passcode header.
 
 = 6.4.9 =
 * Released 2026-11-16
@@ -692,5 +701,5 @@ New: The Plugin Screenshots block/shortcode now supports FooBox Premium for laun
 
 == Upgrade Notice ==
 
-= 6.4.9 =
-New: You can now enable GitHub cards without a personal access token. This is useful for quick tests or demonstrations. Fix: Site-wide plugins would populate empty in certain situations, specifically on WP Playground. This fixes potential fatals with empty site data. Tested successfully up to WordPress 7.2 Beta 5.
+= 6.5.0 =
+Security release. Please update. Anonymous visitors could spend your GitHub token allowance and make this site call WordPress.org. Those REST lookups, along with EDD license totals and custom-plugin JSON, are now restricted.
