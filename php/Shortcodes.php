@@ -38,8 +38,8 @@ class Shortcodes {
 		add_shortcode( 'wp-pic-plugin-screenshots', array( static::class, 'shortcode_plugin_screenshots_info_card' ) );
 		add_shortcode( 'github-info-card', array( static::class, 'shortcode_github_info_card' ) );
 		add_shortcode( 'wp-pic-badges', array( static::class, 'shortcode_profile_badges' ) );
-		add_action( 'wp_ajax_async_wppic_shortcode_content', array( static::class, 'shortcode_content' ) );
-		add_action( 'wp_ajax_nopriv_async_wppic_shortcode_content', array( static::class, 'shortcode_content' ) );
+		add_action( 'wp_ajax_async_wppic_shortcode_content', array( static::class, 'ajax_shortcode_content' ) );
+		add_action( 'wp_ajax_nopriv_async_wppic_shortcode_content', array( static::class, 'ajax_shortcode_content' ) );
 		add_action( 'init', array( static::class, 'register_screenshots_presets_post_type' ) );
 		add_action( 'init', array( static::class, 'register_custom_plugin_post_type' ) );
 		if ( self::is_foobox_lightbox_active() ) {
@@ -2369,29 +2369,29 @@ class Shortcodes {
 	}
 
 	/**
-	 * Retrieve the shortcode content.
+	 * AJAX callback for lazy-loaded cards.
 	 *
-	 * @param string $type plugin or theme.
-	 * @param string $slug Asset slug.
-	 * @param string $image Image override.
-	 * @param string $expiration Expiration in seconds.
-	 * @param string $layout What layout is being used.
-	 * @param object $item_slugs Key separated slugs with overriding titles.
+	 * Public on purpose: the card is already on a cached page, so a nonce would fail.
+	 * Request data is read only here. Rendering receives the normalized arguments and
+	 * does not look at $_POST, so a form POST dispatched to a GET REST route cannot
+	 * replace the attributes that route already validated.
 	 */
-	public static function shortcode_content( $type = null, $slug = null, $image = null, $expiration = null, $layout = null, $item_slugs = null ) {
-		/*
-		 * This also runs as a public (nopriv) AJAX handler without a nonce on purpose.
-		 * It only renders public asset data, and nonces would break on cached pages.
-		 * All input is normalized below and escaped on output.
-		 */
-		$is_ajax_request = false;
-		// phpcs:disable WordPress.Security.NonceVerification.Missing
+	public static function ajax_shortcode_content() {
+		$type       = null;
+		$slug       = null;
+		$image      = null;
+		$expiration = null;
+		$layout     = null;
+		$item_slugs = null;
+		$has_slug   = false;
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Public card HTML; a nonce would fail on cached pages.
 		if ( ! empty( $_POST['type'] ) ) {
 			$type = wp_unslash( $_POST['type'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalized below.
 		}
 		if ( ! empty( $_POST['slug'] ) ) {
-			$slug            = wp_unslash( $_POST['slug'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalized below.
-			$is_ajax_request = true;
+			$slug     = wp_unslash( $_POST['slug'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalized below.
+			$has_slug = true;
 		}
 		if ( ! empty( $_POST['image'] ) ) {
 			$image = wp_unslash( $_POST['image'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalized below.
@@ -2402,7 +2402,62 @@ class Shortcodes {
 		if ( ! empty( $_POST['layout'] ) ) {
 			$layout = wp_unslash( $_POST['layout'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalized below.
 		}
+		if ( isset( $_POST['itemSlugs'] ) && is_array( $_POST['itemSlugs'] ) ) {
+			$item_slugs = Functions::sanitize_array_recursive( wp_unslash( $_POST['itemSlugs'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized recursively.
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
+		$card_args = self::normalize_card_args(
+			array(
+				'type'       => $type,
+				'slug'       => $slug,
+				'image'      => $image,
+				'expiration' => $expiration,
+				'layout'     => $layout,
+			)
+		);
+
+		// GitHub cards hydrate through the token-gated REST route, not this public ajax handler.
+		if ( $has_slug && 'github' === $card_args['type'] ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'GitHub cards cannot be loaded from this route.', 'wp-plugin-info-card' ),
+				)
+			);
+		}
+
+		$content = self::shortcode_content(
+			$card_args['type'],
+			$card_args['slug'],
+			$card_args['image'],
+			$card_args['expiration'],
+			$card_args['layout'],
+			$item_slugs
+		);
+
+		// A posted slug is what the lazy loader sends. Without one, leave admin-ajax to return 0.
+		if ( $has_slug ) {
+			echo wp_kses( $content, Functions::get_kses_allowed_html() );
+			die();
+		}
+	}
+
+	/**
+	 * Render one plugin or theme card from already validated arguments.
+	 *
+	 * This does not read the current request. Callers that accept form or AJAX
+	 * input must normalize that input before calling.
+	 *
+	 * @param string $type       Plugin or theme.
+	 * @param string $slug       Asset slug.
+	 * @param string $image      Image override.
+	 * @param int    $expiration Cache lifetime in minutes. 0 uses the parser default.
+	 * @param string $layout     Card layout.
+	 * @param array  $item_slugs Slugs with overriding titles.
+	 *
+	 * @return string Card HTML.
+	 */
+	public static function shortcode_content( $type = null, $slug = null, $image = null, $expiration = null, $layout = null, $item_slugs = null ) {
 		$card_args = self::normalize_card_args(
 			array(
 				'type'       => $type,
@@ -2418,21 +2473,6 @@ class Shortcodes {
 		$image      = $card_args['image'];
 		$expiration = $card_args['expiration'];
 		$layout     = $card_args['layout'];
-
-		// GitHub cards hydrate through the token-gated REST route, not this public ajax handler.
-		if ( $is_ajax_request && 'github' === $type ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'GitHub cards cannot be loaded from this route.', 'wp-plugin-info-card' ),
-				)
-			);
-		}
-
-		// Get item slugs.
-		if ( isset( $_POST['itemSlugs'] ) && is_array( $_POST['itemSlugs'] ) ) {
-			$item_slugs = Functions::sanitize_array_recursive( wp_unslash( $_POST['itemSlugs'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized recursively.
-		}
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		$wppic_data = wppic_api_parser( $type, $slug, $expiration );
 
@@ -2457,12 +2497,7 @@ class Shortcodes {
 				$error     .= '</div>';
 			$error         .= '</div>';
 
-			if ( $is_ajax_request ) {
-				echo wp_kses( $error, Functions::get_kses_allowed_html() );
-				die();
-			} else {
-				return $error;
-			}
+			return $error;
 		}
 
 		// Date format Internationalizion.
@@ -2500,12 +2535,7 @@ class Shortcodes {
 		$content = '';
 		$content = apply_filters( 'wppic_add_template', $content, array( $type, $wppic_data, $image, $layout ) );
 
-		if ( $is_ajax_request ) {
-			echo wp_kses( $content, Functions::get_kses_allowed_html() );
-			die();
-		} else {
-			return $content;
-		}
+		return $content;
 	}
 
 	/**
