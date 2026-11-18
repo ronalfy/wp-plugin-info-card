@@ -125,10 +125,34 @@ const WP_Plugin_Card_Query = ( props ) => {
 			setCardLoading( true );
 			const rest_url = wppic.rest_url + 'wppic/v2/get_query/';
 			axios
-				.get(
-					rest_url +
-						`?type=${ attributes.type }&slug=${ attributes.slug }&align=${ attributes.align }&image=${ attributes.image }&containerid=${ attributes.containerid }&margin=${ attributes.margin }&clear=${ attributes.clear }&expiration=${ attributes.expiration }&ajax=${ attributes.ajax }&scheme=${ attributes.scheme }&layout=${ attributes.layout }&search=${ attributes.search }&tag=${ attributes.tag }&author=${ attributes.author }&user=${ attributes.user }&browse=${ attributes.browse }&per_page=${ attributes.per_page }&cols=${ attributes.cols }}&sortby=${ attributes.sortby }&sort=${ attributes.sort }&searchBy=${ searchBy }`,
-				)
+				.get( rest_url, {
+					params: {
+						type: attributes.type,
+						slug: attributes.slug,
+						align: attributes.align,
+						image: attributes.image,
+						containerid: attributes.containerid,
+						margin: attributes.margin,
+						clear: attributes.clear,
+						expiration: attributes.expiration,
+						ajax: attributes.ajax,
+						scheme: attributes.scheme,
+						layout: attributes.layout,
+						search: attributes.search,
+						tag: attributes.tag,
+						author: attributes.author,
+						user: attributes.user,
+						browse: attributes.browse,
+						per_page: attributes.per_page,
+						cols: attributes.cols,
+						sortby: attributes.sortby,
+						sort: attributes.sort,
+						searchBy,
+					},
+					headers: {
+						'X-WP-Nonce': wppic.rest_nonce,
+					},
+				} )
 				.then( ( response ) => {
 					// Now Set State
 					setLoading( false );
@@ -146,6 +170,16 @@ const WP_Plugin_Card_Query = ( props ) => {
 						setNoData( true );
 						setLoading( true );
 					}
+				} )
+				.catch( () => {
+					setLoading( false );
+					setCardLoading( false );
+					setAttributes( {
+						assetData: [],
+						html: '',
+					} );
+					setNoData( true );
+					setLoading( true );
 				} );
 		}
 	};
