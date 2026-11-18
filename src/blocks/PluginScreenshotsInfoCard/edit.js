@@ -13,13 +13,14 @@ import PluginScreenshotsCard from '../templates/PluginScreenshots';
 import Logo from '../Logo';
 import { useState, useEffect } from 'react';
 
-import { __} from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 
 const {
 	PanelBody,
 	PanelRow,
 	SelectControl,
 	Spinner,
+	Notice,
 	TextControl,
 	Toolbar,
 	ToolbarGroup,
@@ -60,6 +61,7 @@ const PluginScreenshotsInfoCard = ( props ) => {
 	const [ slug, setSlug ] = useState( attributes.slug );
 	const [ loading, setLoading ] = useState( true );
 	const [ cardLoading, setCardLoading ] = useState( false );
+	const [ loadError, setLoadError ] = useState( '' );
 	const [ image, setImage ] = useState( attributes.image );
 	const [ containerid, setContainerid ] = useState( attributes.containerid );
 	const [ scheme, setScheme ] = useState( attributes.scheme );
@@ -86,16 +88,24 @@ const PluginScreenshotsInfoCard = ( props ) => {
 	const loadData = () => {
 		setLoading( false );
 		setCardLoading( true );
+		setLoadError( '' );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		axios
-			.get(
-				restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`
-			)
+			.get( restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`, {
+				headers: {
+					'X-WP-Nonce': wppic.rest_nonce,
+				},
+			} )
 			.then( ( response ) => {
-				// Now Set State
-				setAttributes( { assetData: response.data.data } );
-				setData( response.data.data );
-				setHasScreenshots( response.data.data.hasOwnProperty( 'screenshots') );
+				const card = Array.isArray( response.data ) ? ( response.data[ 0 ] || {} ) : {};
+				setAttributes( { assetData: card } );
+				setData( card );
+				setHasScreenshots( Object.prototype.hasOwnProperty.call( card, 'screenshots' ) );
+				setCardLoading( false );
+			} )
+			.catch( ( error ) => {
+				setLoadError( error?.response?.data?.message || '' );
+				setHasScreenshots( false );
 				setCardLoading( false );
 			} );
 	};
@@ -104,7 +114,6 @@ const PluginScreenshotsInfoCard = ( props ) => {
 	 * Get a unique ID for the block for inline styling if necessary.
 	 */
 	useEffect( () => {
-		
 		if ( ( null === uniqueId || '' === uniqueId ) || uniqueIds.includes( uniqueId ) ) {
 			const newUniqueId = 'wppic-' + clientId.substr( 2, 9 ).replace( '-', '' );
 
@@ -114,9 +123,6 @@ const PluginScreenshotsInfoCard = ( props ) => {
 			uniqueIds.push( uniqueId );
 		}
 	}, [] );
-
-
-	
 
 	useEffect( () => {
 		if ( data.length <= 0 ) {
@@ -232,7 +238,7 @@ const PluginScreenshotsInfoCard = ( props ) => {
 								>
 									{ __(
 										'Upload Image!',
-										'wp-plugin-info-card'
+										'wp-plugin-info-card',
 									) }
 								</button>
 								{ image && (
@@ -242,7 +248,7 @@ const PluginScreenshotsInfoCard = ( props ) => {
 												src={ image }
 												alt={ __(
 													'Plugin Card Image',
-													'wp-plugin-info-card'
+													'wp-plugin-info-card',
 												) }
 												width="250"
 												height="250"
@@ -260,7 +266,7 @@ const PluginScreenshotsInfoCard = ( props ) => {
 											>
 												{ __(
 													'Reset Image',
-													'wp-plugin-info-card'
+													'wp-plugin-info-card',
 												) }
 											</button>
 										</div>
@@ -308,8 +314,6 @@ const PluginScreenshotsInfoCard = ( props ) => {
 		return null;
 	};
 
-	
-
 	if ( preview ) {
 		return (
 			<>
@@ -337,7 +341,16 @@ const PluginScreenshotsInfoCard = ( props ) => {
 		);
 	}
 
-	return <div { ...blockProps }><div id={ uniqueId }>{ getCurrentScreen() }</div></div>;
+	return (
+		<div { ...blockProps }>
+			{ loadError && (
+				<Notice status="error" isDismissible={ false }>
+					{ loadError }
+				</Notice>
+			) }
+			<div id={ uniqueId }>{ getCurrentScreen() }</div>
+		</div>
+	);
 };
 
 export default PluginScreenshotsInfoCard;

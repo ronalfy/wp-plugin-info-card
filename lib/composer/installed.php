@@ -8,7 +8,7 @@ return array(
         'name' => 'mediaron/wp-plugin-info-card',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '39ac372c74b0145c9884b1f548217a236287f3ef',
+        'reference' => 'e4250650714743fa296c38fda26a6fb84c3421fe',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -18,7 +18,7 @@ return array(
         'mediaron/wp-plugin-info-card' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '39ac372c74b0145c9884b1f548217a236287f3ef',
+            'reference' => 'e4250650714743fa296c38fda26a6fb84c3421fe',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

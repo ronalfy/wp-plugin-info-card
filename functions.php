@@ -64,7 +64,8 @@ function wppic_api_parser( $type, $slug, $expiration = 720, $extra = '', $load_a
 		set_transient( $option_key, $wppic_data, $expiration * 60 );
 	}
 
-	return $wppic_data;
+	// Runs for cache hits and fresh lookups, after the shared card cache is stored.
+	return apply_filters( 'wppic_api_data', $wppic_data, $type, $slug );
 }
 
 

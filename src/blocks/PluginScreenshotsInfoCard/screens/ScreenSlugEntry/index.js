@@ -41,23 +41,29 @@ const SlugEntryScreen = ( props ) => {
 		setLoading( true );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		axios
-			.get(
-				restUrl + `?type=plugin&slug=${ encodeURIComponent( slug ) }`,
-			)
+			.get( restUrl + `?type=plugin&slug=${ encodeURIComponent( slug ) }`, {
+				headers: {
+					'X-WP-Nonce': wppic.rest_nonce,
+				},
+			} )
 			.then( ( response ) => {
-				if ( response.data.success ) {
-					// Set asset data.
+				const card = Array.isArray( response.data ) ? response.data[ 0 ] : null;
+				if ( card ) {
 					setAttributes(
 						{
-							assetData: response.data.data[ 0 ] || {},
+							assetData: card,
 							screen: 'plugin-preview',
 						},
 					);
 				} else {
-					setErrorMessage( response.data.data.message );
+					setErrorMessage( __( 'No plugin could be found with that slug.', 'wp-plugin-info-card' ) );
 					setShowErrorModal( true );
 				}
 			} ).catch( ( error ) => {
+				setErrorMessage(
+					error?.response?.data?.message || __( 'No plugin could be found with that slug.', 'wp-plugin-info-card' ),
+				);
+				setShowErrorModal( true );
 			} ).then( () => {
 				setLoading( false );
 			} );

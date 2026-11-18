@@ -91,7 +91,15 @@ class Import_Export {
 					return;
 				}
 
-				// Setup rest route for handling of exposing plugin's JSON.
+				$slug_arg = array(
+					'required'          => true,
+					'validate_callback' => function ( $param, $request, $key ) {
+						return ! empty( $param ) && preg_match( '/^[a-zA-Z0-9\-_]+$/', $param );
+					},
+					'sanitize_callback' => 'sanitize_text_field',
+				);
+
+				// Path passcode stays supported for URLs already copied to other sites.
 				register_rest_route(
 					'wppic/v1',
 					'plugins/(?P<slug>[-_a-zA-Z0-9]+)/(?P<passcode>[-_a-zA-Z0-9]+)',
@@ -100,20 +108,22 @@ class Import_Export {
 						'callback'            => array( __CLASS__, 'rest_handle_get_plugin_json' ),
 						'permission_callback' => array( __CLASS__, 'rest_check_get_plugin_json_permissions' ),
 						'args'                => array(
-							'slug'     => array(
-								'required'          => true,
-								'validate_callback' => function ( $param, $request, $key ) {
-									return ! empty( $param ) && preg_match( '/^[a-zA-Z0-9\-_]+$/', $param );
-								},
-								'sanitize_callback' => 'sanitize_text_field',
-							),
-							'passcode' => array(
-								'required'          => true,
-								'validate_callback' => function ( $param, $request, $key ) {
-									return ! empty( $param ) && preg_match( '/^[a-zA-Z0-9\-_]+$/', $param );
-								},
-								'sanitize_callback' => 'sanitize_text_field',
-							),
+							'slug'     => $slug_arg,
+							'passcode' => $slug_arg,
+						),
+					)
+				);
+
+				// Same export, with the passcode in the X-WPPIC-Passcode header instead of the path.
+				register_rest_route(
+					'wppic/v1',
+					'plugins/(?P<slug>[-_a-zA-Z0-9]+)',
+					array(
+						'methods'             => 'GET',
+						'callback'            => array( __CLASS__, 'rest_handle_get_plugin_json' ),
+						'permission_callback' => array( __CLASS__, 'rest_check_get_plugin_json_permissions' ),
+						'args'                => array(
+							'slug' => $slug_arg,
 						),
 					)
 				);
@@ -402,9 +412,9 @@ class Import_Export {
 		$existing_data['is_custom_plugin'] = true;
 		$existing_data['is_edd']           = true; // Added in for legacy purposes.
 
-		// Get the advanced options for pinging the REST API.
-		if ( isset( $options['ping_rest_api_interval'] ) ) {
-			$existing_data['ping_rest_api_interval'] = absint( $options['ping_rest_api_interval'] );
+		// Administrators may enqueue a refresh. Public lookups return the stored card and do not schedule cron.
+		if ( current_user_can( 'manage_options' ) && isset( $options['ping_rest_api_interval'] ) ) {
+			$ping_rest_api_interval = absint( $options['ping_rest_api_interval'] );
 
 			// Get the post's last update date.
 			$last_updated = get_post_field( 'post_modified', $custom_plugin->ID );
@@ -413,7 +423,7 @@ class Import_Export {
 			$days_since_last_updated = absint( ( time() - strtotime( $last_updated ) ) / ( 60 * 60 * 24 ) );
 
 			// If the days since last updated is greater than the ping interval, then we need to ping the REST API.
-			if ( $days_since_last_updated > $existing_data['ping_rest_api_interval'] ) {
+			if ( $days_since_last_updated > $ping_rest_api_interval ) {
 				// Make sure there are no other cron jobs for this plugin.
 				wp_clear_scheduled_hook( 'wppic_rest_api_update_plugin_data', array( $custom_plugin->ID ) );
 
@@ -428,71 +438,247 @@ class Import_Export {
 	/**
 	 * Handle the export of a plugin's JSON.
 	 *
+	 * The permission callback is the gate. This repeats it so a later edit cannot
+	 * serve the payload just because the callback ran.
+	 *
 	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response The response object.
+	 * @return WP_REST_Response|\WP_Error The export payload, or a denial.
 	 */
 	public static function rest_handle_get_plugin_json( $request ) {
-		$slug     = sanitize_title( $request->get_param( 'slug' ) );
-		$passcode = sanitize_text_field( $request->get_param( 'passcode' ) );
+		$authorized = self::rest_check_get_plugin_json_permissions( $request );
+		if ( true !== $authorized ) {
+			if ( is_wp_error( $authorized ) ) {
+				return $authorized;
+			}
+			return self::plugin_json_unavailable_error();
+		}
 
-		$plugin = get_posts(
-			array(
-				'post_type' => 'wppic_custom_plugins',
-				'name'      => sanitize_title( $slug ),
-			)
-		);
-
+		$slug   = sanitize_title( (string) $request->get_param( 'slug' ) );
+		$plugin = self::get_published_custom_plugin( $slug );
 		if ( ! $plugin ) {
-			return new \WP_REST_Response( array( 'message' => 'Plugin not found or not enabled for REST API' ), 404 );
-		}
-		$plugin = $plugin[0];
-
-		// Check if plugi is enabled for REST API.
-		$enabled_for_rest = sanitize_text_field( get_post_meta( $plugin->ID, 'enableRestApi', true ) );
-		if ( 'true' !== $enabled_for_rest ) {
-			return new \WP_REST_Response( array( 'message' => 'Plugin not found or not enabled for REST API' ), 403 );
-		}
-
-		// Check if passcode is correct.
-		$rest_api_passcode = sanitize_text_field( get_post_meta( $plugin->ID, 'restApiPasscode', true ) );
-		if ( $rest_api_passcode !== $passcode ) {
-			return new \WP_REST_Response( array( 'message' => 'Invalid passcode' ), 403 );
+			return self::plugin_json_unavailable_error();
 		}
 
 		$payload = self::generate_export_payload( array( $plugin->ID ) );
+		if ( is_wp_error( $payload ) ) {
+			return $payload;
+		}
 
-		return new \WP_REST_Response( $payload );
+		return rest_ensure_response( $payload );
 	}
 
 	/**
-	 * Check the permissions for the export of a plugin's JSON.
+	 * Authorize a public plugin JSON request.
+	 *
+	 * Unknown slugs, disabled plugins, bad passcodes, and callers over the
+	 * failure limit for this slug all receive the same error.
 	 *
 	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response The response object.
+	 * @return true|\WP_Error True when the passcode matches an enabled plugin.
 	 */
 	public static function rest_check_get_plugin_json_permissions( $request ) {
-		// This can technically be public, but let's check the slug and see if it's enabled for the REST API.
-		$slug   = $request->get_param( 'slug' );
-		$plugin = get_posts(
+		$slug     = sanitize_title( (string) $request->get_param( 'slug' ) );
+		$passcode = self::plugin_json_request_passcode( $request );
+
+		// Reserve the attempt before comparing. A full bucket never reaches the passcode.
+		if ( ! self::plugin_json_admit_attempt( $slug ) ) {
+			return self::plugin_json_unavailable_error();
+		}
+
+		$plugin = self::get_published_custom_plugin( $slug );
+		if ( ! $plugin ) {
+			return self::plugin_json_unavailable_error();
+		}
+
+		$enabled_for_rest = sanitize_text_field( (string) get_post_meta( $plugin->ID, 'enableRestApi', true ) );
+		$stored_passcode  = sanitize_text_field( (string) get_post_meta( $plugin->ID, 'restApiPasscode', true ) );
+		$passcode_matches = '' !== $stored_passcode
+			&& strlen( $stored_passcode ) === strlen( $passcode )
+			&& hash_equals( $stored_passcode, $passcode );
+
+		if ( 'true' !== $enabled_for_rest || ! $passcode_matches ) {
+			return self::plugin_json_unavailable_error();
+		}
+
+		// A correct passcode does not consume the failure budget.
+		self::plugin_json_release_attempt( $slug );
+
+		return true;
+	}
+
+	/**
+	 * Generic denial for the public plugin JSON route.
+	 *
+	 * @return \WP_Error Always the same code, message, and status.
+	 */
+	private static function plugin_json_unavailable_error() {
+		return new \WP_Error(
+			'wppic_plugin_json_unavailable',
+			__( 'Plugin not found or not enabled for REST API', 'wp-plugin-info-card' ),
+			array( 'status' => 404 )
+		);
+	}
+
+	/**
+	 * Passcode from the header when it is non-empty, otherwise from the path.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return string Sanitized passcode, or an empty string when none was sent.
+	 */
+	private static function plugin_json_request_passcode( $request ) {
+		$header = $request->get_header( 'x_wppic_passcode' );
+		if ( is_string( $header ) && '' !== $header ) {
+			return sanitize_text_field( $header );
+		}
+
+		$path = $request->get_param( 'passcode' );
+		if ( ! is_string( $path ) ) {
+			return '';
+		}
+
+		return sanitize_text_field( $path );
+	}
+
+	/**
+	 * Load one published custom plugin by slug.
+	 *
+	 * @param string $slug Post name.
+	 * @return \WP_Post|null The plugin post, or null when it does not exist.
+	 */
+	private static function get_published_custom_plugin( $slug ) {
+		if ( '' === $slug ) {
+			return null;
+		}
+
+		$posts = get_posts(
 			array(
-				'post_type' => 'wppic_custom_plugins',
-				'name'      => sanitize_title( $slug ),
+				'post_type'              => 'wppic_custom_plugins',
+				'name'                   => $slug,
+				'post_status'            => 'publish',
+				'posts_per_page'         => 1,
+				'no_found_rows'          => true,
+				'update_post_term_cache' => false,
 			)
 		);
 
-		if ( ! $plugin ) {
-			return new \WP_REST_Response( array( 'message' => 'Plugin not found or not enabled for REST API' ), 404 );
+		if ( empty( $posts ) ) {
+			return null;
 		}
 
-		$plugin           = $plugin[0];
-		$enabled_for_rest = sanitize_text_field( get_post_meta( $plugin->ID, 'enableRestApi', true ) );
-		if ( ! $enabled_for_rest ) {
-			return new \WP_REST_Response( array( 'message' => 'Plugin not found or not enabled for REST API' ), 403 );
+		return $posts[0];
+	}
+
+	/**
+	 * Reserve one passcode attempt for this caller and slug.
+	 *
+	 * The option value is a count. The 15-minute window is part of the option
+	 * name, so an expired window is simply a different row. The increment is
+	 * one statement, so concurrent requests cannot share a count.
+	 *
+	 * @param string $slug Sanitized plugin slug.
+	 * @return bool True when this request may test a passcode.
+	 */
+	private static function plugin_json_admit_attempt( $slug ) {
+		global $wpdb;
+
+		self::plugin_json_delete_expired_attempts();
+
+		$name = self::plugin_json_failure_key( $slug );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Atomic reservation in the options table. An object-cache read-modify-write would lose updates.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, '1', 'no')
+				ON DUPLICATE KEY UPDATE option_value = IF( option_value < %d, option_value + 1, option_value )",
+				$name,
+				5
+			)
+		);
+
+		if ( false === $result ) {
+			return false;
 		}
 
-		$rest_api_passcode = sanitize_text_field( get_post_meta( $plugin->ID, 'restApiPasscode', true ) );
-		$request_passcode  = $request->get_param( 'passcode' );
-		return $rest_api_passcode === $request_passcode;
+		// 1 = inserted, 2 = updated, 0 = budget already full.
+		return (int) $wpdb->rows_affected > 0;
+	}
+
+	/**
+	 * Give back an attempt when the passcode matched.
+	 *
+	 * @param string $slug Sanitized plugin slug.
+	 * @return void
+	 */
+	private static function plugin_json_release_attempt( $slug ) {
+		global $wpdb;
+
+		$name = self::plugin_json_failure_key( $slug );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Atomic rollback of one reserved attempt in the current window.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = option_value - 1 WHERE option_name = %s AND option_value > 0",
+				$name
+			)
+		);
+	}
+
+	/**
+	 * Remove failure counters from windows that have already ended.
+	 *
+	 * @return void
+	 */
+	private static function plugin_json_delete_expired_attempts() {
+		global $wpdb;
+
+		$current_prefix = self::plugin_json_failure_prefix();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deletes only this feature's expired counter rows.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name < %s",
+				$wpdb->esc_like( 'wppic_json_fail_' ) . '%',
+				$current_prefix
+			)
+		);
+	}
+
+	/**
+	 * Option name for one caller's failures against one slug in the current window.
+	 *
+	 * @param string $slug Sanitized plugin slug.
+	 * @return string Option name.
+	 */
+	private static function plugin_json_failure_key( $slug ) {
+		return self::plugin_json_failure_prefix() . md5( self::plugin_json_client_ip() . '|' . (string) $slug );
+	}
+
+	/**
+	 * Name prefix for the current 15-minute failure window.
+	 *
+	 * The window number is zero-padded so older windows sort first and can be deleted by name.
+	 *
+	 * @return string Option name prefix, including the trailing underscore before the caller hash.
+	 */
+	private static function plugin_json_failure_prefix() {
+		$window = (int) floor( time() / ( 15 * MINUTE_IN_SECONDS ) );
+
+		return 'wppic_json_fail_' . sprintf( '%010d', $window ) . '_';
+	}
+
+	/**
+	 * Connection address used only to separate failure counters.
+	 *
+	 * Forwarded-for headers are ignored. A missing address shares one bucket
+	 * so those requests cannot skip the limit.
+	 *
+	 * @return string Validated IP, or an empty string when none was provided.
+	 */
+	private static function plugin_json_client_ip() {
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip          = filter_var( $remote_addr, FILTER_VALIDATE_IP );
+
+		return is_string( $ip ) ? $ip : '';
 	}
 
 	/**
@@ -944,7 +1130,7 @@ class Import_Export {
 	 *
 	 * @param array $plugin_ids Array of plugin IDs to export.
 	 *
-	 * @return array $payload Array of payload data.
+	 * @return array|\WP_Error Payload data, or an error when a plugin cannot be exported.
 	 */
 	public static function generate_export_payload( $plugin_ids ) {
 
@@ -952,23 +1138,19 @@ class Import_Export {
 		foreach ( $plugin_ids as $plugin_id ) {
 			$custom_plugin = get_post( $plugin_id );
 			if ( ! $custom_plugin ) {
-				wp_send_json_error(
-					array(
-						'message'     => __( 'Custom plugin not found', 'wp-plugin-info-card' ),
-						'type'        => 'error',
-						'dismissable' => true,
-					)
+				return new \WP_Error(
+					'wppic_custom_plugin_not_found',
+					__( 'Custom plugin not found', 'wp-plugin-info-card' ),
+					array( 'status' => 404 )
 				);
 			}
 
 			$custom_plugin_data = json_decode( $custom_plugin->post_content, true );
 			if ( ! $custom_plugin_data ) {
-				wp_send_json_error(
-					array(
-						'message'     => __( 'Custom plugin data not found', 'wp-plugin-info-card' ),
-						'type'        => 'error',
-						'dismissable' => true,
-					)
+				return new \WP_Error(
+					'wppic_custom_plugin_data_not_found',
+					__( 'Custom plugin data not found', 'wp-plugin-info-card' ),
+					array( 'status' => 404 )
 				);
 			}
 

@@ -55,6 +55,17 @@ import {
 
 import { useInstanceId } from '@wordpress/compose';
 
+/**
+ * Split a comma-separated slug attribute into the same list the editor requests.
+ *
+ * @param {string} value Raw slug attribute.
+ * @return {string[]} Slug parts, without blanks.
+ */
+const parseEditorSlugs = ( value ) => String( value || '' )
+	.split( ',' )
+	.map( ( part ) => part.trim() )
+	.filter( ( part ) => '' !== part );
+
 const WPPluginInfoCard = ( props ) => {
 	const { attributes, setAttributes } = props;
 
@@ -76,6 +87,7 @@ const WPPluginInfoCard = ( props ) => {
 	const [ data, setData ] = useState( attributes.assetData );
 	const [ align, setAlign ] = useState( attributes.align );
 	const [ noData, setNoData ] = useState( false );
+	const [ noDataMessage, setNoDataMessage ] = useState( '' );
 	const [ pluginThemeSearchInput, setPluginThemeSearchInput ] = useState( '' );
 	const [ itemSlugs, setItemSlugs ] = useState( attributes.itemSlugs );
 	const [ marginSpacing, setMarginSpacing ] = useState( attributes.marginSpacing );
@@ -97,29 +109,59 @@ const WPPluginInfoCard = ( props ) => {
 		setLoading( false );
 		setCardLoading( true );
 		setNoData( false );
+		setNoDataMessage( '' );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
-		axios
-			.get(
-				restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`,
-			)
-			.then( ( response ) => {
-				if ( response.data.success ) {
-					// Now Set State
-					setData( response.data.data );
-					setAttributes( { assetData: response.data.data } );
+		// The public data route returns at most ten slugs. Request the rest in further batches
+		// so the preview and title controls include every slug saved on the block.
+		const slugParts = parseEditorSlugs( slug );
+		const batches = [];
+		for ( let index = 0; index < slugParts.length; index += 10 ) {
+			batches.push( slugParts.slice( index, index + 10 ) );
+		}
+		if ( 0 === batches.length ) {
+			batches.push( [ String( slug || '' ) ] );
+		}
+
+		Promise.all(
+			batches.map( ( batch ) => axios.get(
+				restUrl + `?type=${ type }&slug=${ encodeURIComponent( batch.join( ',' ) ) }`,
+				{
+					headers: {
+						'X-WP-Nonce': wppic.rest_nonce,
+					},
+				},
+			) ),
+		)
+			.then( ( responses ) => {
+				const cards = responses.reduce( ( collected, response ) => {
+					const batchCards = Array.isArray( response.data ) ? response.data : [];
+					return collected.concat( batchCards );
+				}, [] );
+				if ( cards.length ) {
+					setData( cards );
+					setAttributes( { assetData: cards } );
 					setCardLoading( false );
 				} else {
 					setNoData( true );
 					setCardLoading( false );
 					setLoading( true );
 				}
+			} )
+			.catch( ( error ) => {
+				setNoDataMessage( error?.response?.data?.message || '' );
+				setNoData( true );
+				setCardLoading( false );
+				setLoading( true );
 			} );
 	};
 	const pluginOnClick = ( assetSlug, assetType ) => {
 		loadData();
 	};
 	useEffect( () => {
-		if ( ! data || 0 === data.length ) {
+		const savedSlugs = parseEditorSlugs( attributes.slug );
+		const savedCards = Array.isArray( data ) ? data : [];
+		// A previously saved preview can contain only the first ten cards from one REST response.
+		if ( 0 === savedCards.length || savedSlugs.length > savedCards.length ) {
 			loadData();
 		}
 		setImage( attributes.image );
@@ -662,10 +704,11 @@ const WPPluginInfoCard = ( props ) => {
 													status="error"
 													isDismissible={ false }
 												>
-													{ __(
-														'No data found for the given slug.',
-														'wp-plugin-info-card',
-													) }
+													{ noDataMessage ||
+														__(
+															'No data found for the given slug.',
+															'wp-plugin-info-card',
+														) }
 												</Notice>
 											) }
 										</>
