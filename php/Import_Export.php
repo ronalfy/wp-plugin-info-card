@@ -480,13 +480,13 @@ class Import_Export {
 		$slug     = sanitize_title( (string) $request->get_param( 'slug' ) );
 		$passcode = self::plugin_json_request_passcode( $request );
 
-		if ( self::plugin_json_failures_capped( $slug ) ) {
+		// Reserve the attempt before comparing. A full bucket never reaches the passcode.
+		if ( ! self::plugin_json_admit_attempt( $slug ) ) {
 			return self::plugin_json_unavailable_error();
 		}
 
 		$plugin = self::get_published_custom_plugin( $slug );
 		if ( ! $plugin ) {
-			self::plugin_json_record_failure( $slug );
 			return self::plugin_json_unavailable_error();
 		}
 
@@ -497,9 +497,11 @@ class Import_Export {
 			&& hash_equals( $stored_passcode, $passcode );
 
 		if ( 'true' !== $enabled_for_rest || ! $passcode_matches ) {
-			self::plugin_json_record_failure( $slug );
 			return self::plugin_json_unavailable_error();
 		}
+
+		// A correct passcode does not consume the failure budget.
+		self::plugin_json_release_attempt( $slug );
 
 		return true;
 	}
@@ -567,38 +569,101 @@ class Import_Export {
 	}
 
 	/**
-	 * Whether this caller is already out of failed attempts for the slug.
+	 * Reserve one passcode attempt for this caller and slug.
 	 *
-	 * Other callers keep their own counters, so one client cannot lock out
-	 * a consumer that still has the correct passcode.
+	 * The option value is a count. The 15-minute window is part of the option
+	 * name, so an expired window is simply a different row. The increment is
+	 * one statement, so concurrent requests cannot share a count.
 	 *
 	 * @param string $slug Sanitized plugin slug.
-	 * @return bool True when this caller is at the limit for the slug.
+	 * @return bool True when this request may test a passcode.
 	 */
-	private static function plugin_json_failures_capped( $slug ) {
-		$bucket = self::plugin_json_failure_bucket( self::plugin_json_failure_key( $slug ) );
+	private static function plugin_json_admit_attempt( $slug ) {
+		global $wpdb;
 
-		return $bucket['count'] >= 5;
+		self::plugin_json_delete_expired_attempts();
+
+		$name = self::plugin_json_failure_key( $slug );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Atomic reservation in the options table. An object-cache read-modify-write would lose updates.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, '1', 'no')
+				ON DUPLICATE KEY UPDATE option_value = IF( option_value < %d, option_value + 1, option_value )",
+				$name,
+				5
+			)
+		);
+
+		if ( false === $result ) {
+			return false;
+		}
+
+		// 1 = inserted, 2 = updated, 0 = budget already full.
+		return (int) $wpdb->rows_affected > 0;
 	}
 
 	/**
-	 * Count one failed lookup against this caller and slug.
+	 * Give back an attempt when the passcode matched.
 	 *
 	 * @param string $slug Sanitized plugin slug.
 	 * @return void
 	 */
-	private static function plugin_json_record_failure( $slug ) {
-		self::plugin_json_increment_failure( self::plugin_json_failure_key( $slug ) );
+	private static function plugin_json_release_attempt( $slug ) {
+		global $wpdb;
+
+		$name = self::plugin_json_failure_key( $slug );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Atomic rollback of one reserved attempt in the current window.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = option_value - 1 WHERE option_name = %s AND option_value > 0",
+				$name
+			)
+		);
 	}
 
 	/**
-	 * Transient name for one caller's failures against one slug.
+	 * Remove failure counters from windows that have already ended.
+	 *
+	 * @return void
+	 */
+	private static function plugin_json_delete_expired_attempts() {
+		global $wpdb;
+
+		$current_prefix = self::plugin_json_failure_prefix();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deletes only this feature's expired counter rows.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name < %s",
+				$wpdb->esc_like( 'wppic_json_fail_' ) . '%',
+				$current_prefix
+			)
+		);
+	}
+
+	/**
+	 * Option name for one caller's failures against one slug in the current window.
 	 *
 	 * @param string $slug Sanitized plugin slug.
-	 * @return string Transient key.
+	 * @return string Option name.
 	 */
 	private static function plugin_json_failure_key( $slug ) {
-		return 'wppic_json_fail_' . md5( self::plugin_json_client_ip() . '|' . (string) $slug );
+		return self::plugin_json_failure_prefix() . md5( self::plugin_json_client_ip() . '|' . (string) $slug );
+	}
+
+	/**
+	 * Name prefix for the current 15-minute failure window.
+	 *
+	 * The window number is zero-padded so older windows sort first and can be deleted by name.
+	 *
+	 * @return string Option name prefix, including the trailing underscore before the caller hash.
+	 */
+	private static function plugin_json_failure_prefix() {
+		$window = (int) floor( time() / ( 15 * MINUTE_IN_SECONDS ) );
+
+		return 'wppic_json_fail_' . sprintf( '%010d', $window ) . '_';
 	}
 
 	/**
@@ -614,48 +679,6 @@ class Import_Export {
 		$ip          = filter_var( $remote_addr, FILTER_VALIDATE_IP );
 
 		return is_string( $ip ) ? $ip : '';
-	}
-
-	/**
-	 * Read a failure counter, treating an expired window as zero.
-	 *
-	 * @param string $key Transient key.
-	 * @return array{count:int,expires:int} Count and the unix time the window ends.
-	 */
-	private static function plugin_json_failure_bucket( $key ) {
-		$bucket = get_transient( $key );
-		$now    = time();
-		if (
-			! is_array( $bucket )
-			|| ! isset( $bucket['count'], $bucket['expires'] )
-			|| $now >= (int) $bucket['expires']
-		) {
-			return array(
-				'count'   => 0,
-				'expires' => $now + ( 15 * MINUTE_IN_SECONDS ),
-			);
-		}
-
-		return array(
-			'count'   => (int) $bucket['count'],
-			'expires' => (int) $bucket['expires'],
-		);
-	}
-
-	/**
-	 * Add one failure inside the current 15-minute window.
-	 *
-	 * @param string $key Transient key.
-	 * @return void
-	 */
-	private static function plugin_json_increment_failure( $key ) {
-		$bucket = self::plugin_json_failure_bucket( $key );
-		++$bucket['count'];
-		$ttl = (int) $bucket['expires'] - time();
-		if ( $ttl < 1 ) {
-			$ttl = 1;
-		}
-		set_transient( $key, $bucket, $ttl );
 	}
 
 	/**
