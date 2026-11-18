@@ -55,6 +55,17 @@ import {
 
 import { useInstanceId } from '@wordpress/compose';
 
+/**
+ * Split a comma-separated slug attribute into the same list the editor requests.
+ *
+ * @param {string} value Raw slug attribute.
+ * @return {string[]} Slug parts, without blanks.
+ */
+const parseEditorSlugs = ( value ) => String( value || '' )
+	.split( ',' )
+	.map( ( part ) => part.trim() )
+	.filter( ( part ) => '' !== part );
+
 const WPPluginInfoCard = ( props ) => {
 	const { attributes, setAttributes } = props;
 
@@ -102,10 +113,7 @@ const WPPluginInfoCard = ( props ) => {
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		// The public data route returns at most ten slugs. Request the rest in further batches
 		// so the preview and title controls include every slug saved on the block.
-		const slugParts = String( slug || '' )
-			.split( ',' )
-			.map( ( part ) => part.trim() )
-			.filter( ( part ) => '' !== part );
+		const slugParts = parseEditorSlugs( slug );
 		const batches = [];
 		for ( let index = 0; index < slugParts.length; index += 10 ) {
 			batches.push( slugParts.slice( index, index + 10 ) );
@@ -150,7 +158,10 @@ const WPPluginInfoCard = ( props ) => {
 		loadData();
 	};
 	useEffect( () => {
-		if ( ! data || 0 === data.length ) {
+		const savedSlugs = parseEditorSlugs( attributes.slug );
+		const savedCards = Array.isArray( data ) ? data : [];
+		// A previously saved preview can contain only the first ten cards from one REST response.
+		if ( 0 === savedCards.length || savedSlugs.length > savedCards.length ) {
 			loadData();
 		}
 		setImage( attributes.image );
