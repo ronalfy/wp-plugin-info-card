@@ -2780,7 +2780,6 @@ class Shortcodes {
 				'wppicGithubInfoCardLazyLoad',
 				array(
 					'restUrl'             => Functions::get_rest_url( 'wppic/v2/get_github_card_html' ),
-					'restNonce'           => wp_create_nonce( 'wp_rest' ),
 					'defaultGithubAvatar' => Functions::get_default_github_avatar_url(),
 					'cardAttributes'      => array(),
 				)
@@ -2842,23 +2841,6 @@ class Shortcodes {
 
 			$token = self::get_github_lazy_load_token( $attributes['username'], $attributes['repo'] );
 
-			// Preload in GitHub repo URLs.
-			$preload_paths = array(
-				esc_url_raw(
-					add_query_arg(
-						array(
-							'username' => sanitize_key( $attributes['username'] ),
-							'repo'     => sanitize_key( $attributes['repo'] ),
-						),
-						Functions::get_rest_url( 'wppic/v2/get_github_card_html' )
-					)
-				),
-			);
-			wp_add_inline_script(
-				'wppic-github-info-card-lazy-load',
-				'wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( ' . wp_json_encode( $preload_paths ) . ' ) );',
-				'after',
-			);
 			// Add attributes as localized vars.
 			wp_add_inline_script(
 				'wppic-github-info-card-lazy-load',
