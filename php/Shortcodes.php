@@ -328,7 +328,7 @@ class Shortcodes {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_github_data' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'rest_check_permissions' ),
 				'args'                => array(
 					'username' => array(
 						'type'              => 'string',
@@ -338,12 +338,12 @@ class Shortcodes {
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_title',
 					),
-				),
-				'force'               => array(
-					'type'              => 'boolean',
-					'sanitize_callback' => function ( $value ) {
-						return filter_var( $value, FILTER_VALIDATE_BOOLEAN );
-					},
+					'force'    => array(
+						'type'              => 'boolean',
+						'sanitize_callback' => function ( $value ) {
+							return filter_var( $value, FILTER_VALIDATE_BOOLEAN );
+						},
+					),
 				),
 			)
 		);
@@ -366,6 +366,10 @@ class Shortcodes {
 					'username'       => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_title',
+					),
+					'token'          => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
 					),
 					'cardAttributes' => array(
 						'type'       => 'object',
@@ -611,19 +615,19 @@ class Shortcodes {
 	 */
 	public function get_github_data( $request ) {
 
-		$username    = sanitize_key( strtolower( $request->get_param( 'username' ) ) );
-		$repo        = sanitize_key( strtolower( $request->get_param( 'repo' ) ) );
-		$maybe_force = $request->get_param( 'force' );
-		$force       = false;
-		if ( ! empty( $maybe_force ) ) {
-			$force = filter_var( $maybe_force, FILTER_VALIDATE_BOOLEAN );
+		$username = sanitize_key( strtolower( (string) $request->get_param( 'username' ) ) );
+		$repo     = sanitize_key( strtolower( (string) $request->get_param( 'repo' ) ) );
+		$force    = false;
+		// The route permission already requires edit_posts. Check again so a reused callback cannot honor force anonymously.
+		if ( current_user_can( 'edit_posts' ) ) {
+			$force = (bool) $request->get_param( 'force' );
 		}
 
 		if ( empty( $username ) || empty( $repo ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid username or repo.' ) );
 		}
 
-		$github_data = wppic_api_parser( 'github', $username . '/' . $repo, 1 * WEEK_IN_SECONDS, '', false, $force );
+		$github_data = wppic_api_parser( 'github', $username . '/' . $repo, 720, '', false, $force );
 
 		if ( empty( $github_data ) ) {
 			wp_send_json_error( array( 'message' => 'No data found.' ) );
@@ -798,6 +802,16 @@ class Shortcodes {
 	 * Get the main (plugin info card) shortcode.
 	 */
 	public function get_base_shortcode() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reject GitHub before any remote fetch. This public route does not authorize that type.
+		$requested_type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : '';
+		if ( 'github' === $requested_type ) {
+			return new \WP_Error(
+				'wppic_github_rest_forbidden',
+				__( 'GitHub cards cannot be loaded from this route.', 'wp-plugin-info-card' ),
+				array( 'status' => 403 )
+			);
+		}
+
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Public read-only card render. No state change.
 		$attrs = array(
 			'type'        => isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : '',
@@ -2249,6 +2263,15 @@ class Shortcodes {
 		$expiration = $card_args['expiration'];
 		$layout     = $card_args['layout'];
 
+		// GitHub cards hydrate through the token-gated REST route, not this public ajax handler.
+		if ( $is_ajax_request && 'github' === $type ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'GitHub cards cannot be loaded from this route.', 'wp-plugin-info-card' ),
+				)
+			);
+		}
+
 		// Get item slugs.
 		if ( isset( $_POST['itemSlugs'] ) && is_array( $_POST['itemSlugs'] ) ) {
 			$item_slugs = Functions::sanitize_array_recursive( wp_unslash( $_POST['itemSlugs'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized recursively.
@@ -2616,7 +2639,7 @@ class Shortcodes {
 		if ( null !== $asset_data ) {
 			$maybe_local_cache = $asset_data;
 		} else {
-			$maybe_local_cache = get_transient( 'wppic_github_' . sanitize_key( preg_replace( '/\-/', '_', $attributes['username'] . '/' . $attributes['repo'] ) ), false );
+			$maybe_local_cache = get_transient( 'wppic_github_' . sanitize_key( preg_replace( '/\-/', '_', $attributes['username'] . '/' . $attributes['repo'] ) ) );
 		}
 		if ( ! $maybe_local_cache && ! defined( 'WPPIC_REST_REQUEST' ) ) { // Start lazy load.
 			// Get wrapper classes for loading card.
@@ -2634,7 +2657,7 @@ class Shortcodes {
 				$wrapper_classes[] = 'horizontal-align-' . ( ! is_wp_error( $attributes['horizontalalign'] ) && ! empty( $attributes['horizontalalign'] ) ? $attributes['horizontalalign'] : 'center' );
 			}
 
-			$nonce = wp_create_nonce( 'wppic_github_lazy_load_' . sanitize_key( $attributes['username'] . '/' . $attributes['repo'] ) );
+			$token = self::get_github_lazy_load_token( $attributes['username'], $attributes['repo'] );
 
 			// Preload in GitHub repo URLs.
 			$preload_paths = array(
@@ -2661,7 +2684,7 @@ class Shortcodes {
 			);
 			ob_start();
 			?>
-			<div class="<?php echo esc_attr( implode( ' ', $wrapper_classes ) ); ?>" id="<?php echo esc_attr( $attributes['uniqueid'] ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-username="<?php echo esc_attr( strtolower( $attributes['username'] ) ); ?>" data-repo="<?php echo esc_attr( strtolower( $attributes['repo'] ) ); ?>" data-is-github-card-loading="true">
+			<div class="<?php echo esc_attr( implode( ' ', $wrapper_classes ) ); ?>" id="<?php echo esc_attr( $attributes['uniqueid'] ); ?>" data-token="<?php echo esc_attr( $token ); ?>" data-username="<?php echo esc_attr( strtolower( $attributes['username'] ) ); ?>" data-repo="<?php echo esc_attr( strtolower( $attributes['repo'] ) ); ?>" data-is-github-card-loading="true">
 				<div class="wppic-github-info-card-wrapper">
 					<div class="wppic-github-info-card-loading" >
 					<article class="github-skeleton-card" aria-busy="true" aria-label="Loading repository card">
@@ -3172,22 +3195,95 @@ class Shortcodes {
 	}
 
 	/**
+	 * Issue or reuse a public lazy-load token for one GitHub owner/repo.
+	 *
+	 * The token is not tied to a user, so a cached page can hydrate for every visitor.
+	 * It only authorizes the repository this site already rendered.
+	 *
+	 * @param string $username Repository owner.
+	 * @param string $repo     Repository name.
+	 * @return string Token printed into the skeleton markup.
+	 */
+	private static function get_github_lazy_load_token( $username, $repo ) {
+		$username = sanitize_title( $username );
+		$repo     = sanitize_title( $repo );
+		$ttl      = 12 * HOUR_IN_SECONDS;
+		$repo_key = 'wppic_github_lazy_' . sanitize_key( $username . '/' . $repo );
+		$existing = get_transient( $repo_key );
+
+		if ( is_string( $existing ) && '' !== $existing ) {
+			$stored = get_transient( 'wppic_github_lazy_token_' . $existing );
+			if ( is_array( $stored ) ) {
+				set_transient( $repo_key, $existing, $ttl );
+				set_transient( 'wppic_github_lazy_token_' . $existing, $stored, $ttl );
+				return $existing;
+			}
+		}
+
+		$token   = wp_generate_password( 32, false );
+		$payload = array(
+			'username' => $username,
+			'repo'     => $repo,
+		);
+		set_transient( $repo_key, $token, $ttl );
+		set_transient( 'wppic_github_lazy_token_' . $token, $payload, $ttl );
+
+		return $token;
+	}
+
+	/**
+	 * Confirm a lazy-load token was minted for this owner and repo.
+	 *
+	 * Missing, expired, and mismatched tokens return the same error so callers
+	 * cannot tell those cases apart.
+	 *
+	 * @param string $token    Token from the request.
+	 * @param string $username Sanitized owner.
+	 * @param string $repo     Sanitized repository.
+	 * @return true|WP_Error
+	 */
+	private static function verify_github_lazy_load_token( $token, $username, $repo ) {
+		$token           = is_string( $token ) ? $token : '';
+		$stored          = '' === $token ? false : get_transient( 'wppic_github_lazy_token_' . $token );
+		$stored_username = ( is_array( $stored ) && isset( $stored['username'] ) ) ? (string) $stored['username'] : '';
+		$stored_repo     = ( is_array( $stored ) && isset( $stored['repo'] ) ) ? (string) $stored['repo'] : '';
+		$username_ok     = '' !== $username && strlen( $stored_username ) === strlen( $username ) && hash_equals( $stored_username, $username );
+		$repo_ok         = '' !== $repo && strlen( $stored_repo ) === strlen( $repo ) && hash_equals( $stored_repo, $repo );
+
+		if ( ! $username_ok || ! $repo_ok ) {
+			return new \WP_Error(
+				'wppic_github_token_invalid',
+				__( 'GitHub card could not be loaded.', 'wp-plugin-info-card' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Get GitHub card HTML.
 	 *
 	 * @param object $request The request object.
-	 * @return string The GitHub card HTML.
+	 * @return WP_REST_Response|WP_Error The GitHub card HTML, or an error before any remote fetch.
 	 */
 	public function get_github_card_html( $request ) {
-		$attributes  = $request->get_param( 'cardAttributes' );
-		$username    = sanitize_title( $request->get_param( 'username' ) );
-		$repo        = sanitize_title( $request->get_param( 'repo' ) );
-		$github_data = wppic_api_parser( 'github', $username . '/' . $repo, 1 * WEEK_IN_SECONDS, '', false, false );
+		$attributes = $request->get_param( 'cardAttributes' );
+		$username   = sanitize_title( (string) $request->get_param( 'username' ) );
+		$repo       = sanitize_title( (string) $request->get_param( 'repo' ) );
+		$token      = sanitize_text_field( (string) $request->get_param( 'token' ) );
+		$verified   = self::verify_github_lazy_load_token( $token, $username, $repo );
+		if ( is_wp_error( $verified ) ) {
+			return $verified;
+		}
+
+		// Ignore any client force flag. Public hydration may only read the normal cache.
+		$github_data = wppic_api_parser( 'github', $username . '/' . $repo, 720, '', false, false );
 		if ( empty( $github_data ) ) {
-			wp_send_json_error(
-				array(
-					'message' => 'No data found.',
-					'html'    => '',
-				)
+			return new \WP_Error(
+				'wppic_github_not_found',
+				__( 'No data found.', 'wp-plugin-info-card' ),
+				array( 'status' => 404 )
 			);
 		}
 		$attributes = Functions::sanitize_array_recursive( $attributes );

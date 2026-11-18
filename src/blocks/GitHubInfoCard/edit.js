@@ -188,9 +188,16 @@ const GitHubInfoCard = ( props ) => {
 		setNoData( false );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_github_data';
 		axios
-			.get(
-				restUrl + `?username=${ username }&repo=${ repo }&force=true`,
-			)
+			.get( restUrl, {
+				params: {
+					username,
+					repo,
+					force: true,
+				},
+				headers: {
+					'X-WP-Nonce': wppic.rest_nonce,
+				},
+			} )
 			.then( ( response ) => {
 				if ( response.data.success ) {
 					// Now Set State
