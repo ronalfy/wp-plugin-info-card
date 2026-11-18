@@ -47,19 +47,23 @@ const SlugEntryScreen = ( props ) => {
 				},
 			} )
 			.then( ( response ) => {
-				if ( response.data.success ) {
-					// Set asset data.
+				const card = Array.isArray( response.data ) ? response.data[ 0 ] : null;
+				if ( card ) {
 					setAttributes(
 						{
-							assetData: response.data.data[ 0 ] || {},
+							assetData: card,
 							screen: 'plugin-preview',
 						},
 					);
 				} else {
-					setErrorMessage( response.data.data.message );
+					setErrorMessage( __( 'No plugin could be found with that slug.', 'wp-plugin-info-card' ) );
 					setShowErrorModal( true );
 				}
 			} ).catch( ( error ) => {
+				setErrorMessage(
+					error?.response?.data?.message || __( 'No plugin could be found with that slug.', 'wp-plugin-info-card' ),
+				);
+				setShowErrorModal( true );
 			} ).then( () => {
 				setLoading( false );
 			} );

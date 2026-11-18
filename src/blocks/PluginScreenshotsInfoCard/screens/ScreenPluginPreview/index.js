@@ -36,9 +36,11 @@ import LoadingScreen from '../../../components/Loading';
 const ScreenPluginPreview = ( props ) => {
 	const { attributes, setAttributes, clientId } = props;
 	const [ loading, setLoading ] = useState( false );
+	const [ loadError, setLoadError ] = useState( '' );
 
 	const loadData = () => {
 		setLoading( true );
+		setLoadError( '' );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		axios
 			.get( restUrl + `?type=plugin&slug=${ encodeURIComponent( attributes.slug ) }`, {
@@ -47,17 +49,16 @@ const ScreenPluginPreview = ( props ) => {
 				},
 			} )
 			.then( ( response ) => {
-				if ( response.data.success ) {
-					// Set asset data.
-					setAttributes(
-						{
-							assetData: response.data.data[ 0 ] || {},
-						},
-					);
-				} else {
-					// todo - error messages
-				}
+				const card = Array.isArray( response.data ) ? ( response.data[ 0 ] || {} ) : {};
+				setAttributes(
+					{
+						assetData: card,
+					},
+				);
 			} ).catch( ( error ) => {
+				setLoadError(
+					error?.response?.data?.message || __( 'No plugin could be found with that slug.', 'wp-plugin-info-card' ),
+				);
 			} ).then( () => {
 				setLoading( false );
 			} );
@@ -308,6 +309,11 @@ const ScreenPluginPreview = ( props ) => {
 	const block = (
 		<>
 			{ blockToolbar }
+			{ loadError && (
+				<Notice status="error" isDismissible={ false }>
+					{ loadError }
+				</Notice>
+			) }
 			<PluginScreenshots
 				assetData={ assetData }
 				attributes={ attributes }
