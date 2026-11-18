@@ -76,6 +76,7 @@ const WPPluginInfoCard = ( props ) => {
 	const [ data, setData ] = useState( attributes.assetData );
 	const [ align, setAlign ] = useState( attributes.align );
 	const [ noData, setNoData ] = useState( false );
+	const [ noDataMessage, setNoDataMessage ] = useState( '' );
 	const [ pluginThemeSearchInput, setPluginThemeSearchInput ] = useState( '' );
 	const [ itemSlugs, setItemSlugs ] = useState( attributes.itemSlugs );
 	const [ marginSpacing, setMarginSpacing ] = useState( attributes.marginSpacing );
@@ -97,6 +98,7 @@ const WPPluginInfoCard = ( props ) => {
 		setLoading( false );
 		setCardLoading( true );
 		setNoData( false );
+		setNoDataMessage( '' );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
 		axios
 			.get( restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`, {
@@ -105,16 +107,22 @@ const WPPluginInfoCard = ( props ) => {
 				},
 			} )
 			.then( ( response ) => {
-				if ( response.data.success ) {
-					// Now Set State
-					setData( response.data.data );
-					setAttributes( { assetData: response.data.data } );
+				const cards = Array.isArray( response.data ) ? response.data : [];
+				if ( cards.length ) {
+					setData( cards );
+					setAttributes( { assetData: cards } );
 					setCardLoading( false );
 				} else {
 					setNoData( true );
 					setCardLoading( false );
 					setLoading( true );
 				}
+			} )
+			.catch( ( error ) => {
+				setNoDataMessage( error?.response?.data?.message || '' );
+				setNoData( true );
+				setCardLoading( false );
+				setLoading( true );
 			} );
 	};
 	const pluginOnClick = ( assetSlug, assetType ) => {
@@ -664,10 +672,11 @@ const WPPluginInfoCard = ( props ) => {
 													status="error"
 													isDismissible={ false }
 												>
-													{ __(
-														'No data found for the given slug.',
-														'wp-plugin-info-card',
-													) }
+													{ noDataMessage ||
+														__(
+															'No data found for the given slug.',
+															'wp-plugin-info-card',
+														) }
 												</Notice>
 											) }
 										</>

@@ -402,9 +402,9 @@ class Import_Export {
 		$existing_data['is_custom_plugin'] = true;
 		$existing_data['is_edd']           = true; // Added in for legacy purposes.
 
-		// Get the advanced options for pinging the REST API.
-		if ( isset( $options['ping_rest_api_interval'] ) ) {
-			$existing_data['ping_rest_api_interval'] = absint( $options['ping_rest_api_interval'] );
+		// Administrators may enqueue a refresh. Public lookups return the stored card and do not schedule cron.
+		if ( current_user_can( 'manage_options' ) && isset( $options['ping_rest_api_interval'] ) ) {
+			$ping_rest_api_interval = absint( $options['ping_rest_api_interval'] );
 
 			// Get the post's last update date.
 			$last_updated = get_post_field( 'post_modified', $custom_plugin->ID );
@@ -413,7 +413,7 @@ class Import_Export {
 			$days_since_last_updated = absint( ( time() - strtotime( $last_updated ) ) / ( 60 * 60 * 24 ) );
 
 			// If the days since last updated is greater than the ping interval, then we need to ping the REST API.
-			if ( $days_since_last_updated > $existing_data['ping_rest_api_interval'] ) {
+			if ( $days_since_last_updated > $ping_rest_api_interval ) {
 				// Make sure there are no other cron jobs for this plugin.
 				wp_clear_scheduled_hook( 'wppic_rest_api_update_plugin_data', array( $custom_plugin->ID ) );
 
