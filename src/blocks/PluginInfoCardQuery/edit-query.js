@@ -8,7 +8,7 @@ const HtmlToReactParser = require( 'html-to-react' ).Parser;
 
 import { __ } from '@wordpress/i18n';
 
-const { useState, useEffect, Fragment, useCallback } = wp.element;
+const { useState, useEffect, Fragment, useCallback, useRef } = wp.element;
 
 const {
 	PanelBody,
@@ -90,6 +90,7 @@ const WP_Plugin_Card_Query = ( props ) => {
 	const [ currentScheme, setCurrentScheme ] = useState( attributes.scheme );
 	const [ currentLayout, setCurrentLayout ] = useState( attributes.layout );
 	const [ itemSlugs, setItemSlugs ] = useState( attributes.itemSlugs );
+	const queryRequestId = useRef( 0 );
 
 	const {
 		assetData,
@@ -145,6 +146,10 @@ const WP_Plugin_Card_Query = ( props ) => {
 
 	const pluginOnClick = ( event ) => {
 		if ( '' !== type ) {
+			// Two edits can start two queries before the spinner paints. A late
+			// failure must not clear cards saved by the newer request.
+			const requestId = queryRequestId.current + 1;
+			queryRequestId.current = requestId;
 			setCardLoading( true );
 			const rest_url = wppic.rest_url + 'wppic/v2/get_query/';
 			axios
@@ -177,10 +182,14 @@ const WP_Plugin_Card_Query = ( props ) => {
 					},
 				} )
 				.then( ( response ) => {
+					if ( requestId !== queryRequestId.current ) {
+						return;
+					}
 					// Now Set State
 					setLoading( false );
 					setCardLoading( false );
 					if ( response.data.success ) {
+						setNoData( false );
 						setAttributes( {
 							assetData: response.data.data.api_response,
 							html: response.data.data.html,
@@ -195,6 +204,9 @@ const WP_Plugin_Card_Query = ( props ) => {
 					}
 				} )
 				.catch( () => {
+					if ( requestId !== queryRequestId.current ) {
+						return;
+					}
 					setLoading( false );
 					setCardLoading( false );
 					setAttributes( {
