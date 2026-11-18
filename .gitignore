@@ -50,3 +50,4 @@ badges-documentation.md
 /lib/phpstan/
 /lib/szepeviktor/
 /.phpstan-tmp/
+plans/
