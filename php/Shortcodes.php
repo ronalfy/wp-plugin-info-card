@@ -934,7 +934,7 @@ class Shortcodes {
 	 * An empty type defaults to plugin. GitHub is rejected before any other type.
 	 *
 	 * @param string $type Requested card type.
-	 * @return string|WP_Error
+	 * @return string|\WP_Error
 	 */
 	private static function public_card_type( $type ) {
 		$type = sanitize_key( (string) $type );
@@ -962,8 +962,8 @@ class Shortcodes {
 	/**
 	 * Get the main (plugin info card) shortcode.
 	 *
-	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_base_shortcode( $request ) {
 		$requested_type = sanitize_key( (string) $request->get_param( 'type' ) );
@@ -1106,9 +1106,9 @@ class Shortcodes {
 	 * v2 only applies the field selected by searchBy. v1 accepts each field that is present.
 	 * The editor draws cards from api_response, so this does not render shortcode HTML.
 	 *
-	 * @param WP_REST_Request $request         REST request.
+	 * @param \WP_REST_Request $request         REST request.
 	 * @param bool            $apply_search_by Whether to gate fields with searchBy.
-	 * @return WP_REST_Response|WP_Error
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	private function query_directory_for_rest( $request, $apply_search_by ) {
 		$type = sanitize_key( (string) $request->get_param( 'type' ) );
@@ -1247,8 +1247,8 @@ class Shortcodes {
 	/**
 	 * Retrieve the query shortcode.
 	 *
-	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_query_shortcode( $request ) {
 		return $this->query_directory_for_rest( $request, false );
@@ -1257,8 +1257,8 @@ class Shortcodes {
 	/**
 	 * Retrieve the v2 query shortcode.
 	 *
-	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_query_shortcode_v2( $request ) {
 		return $this->query_directory_for_rest( $request, true );
@@ -2511,8 +2511,8 @@ class Shortcodes {
 	/**
 	 * Return plugin data based on passed strings.
 	 *
-	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_asset_data( $request ) {
 		$type = self::public_card_type( $request->get_param( 'type' ) );
@@ -3393,7 +3393,7 @@ class Shortcodes {
 	 * @param string $token    Token from the request.
 	 * @param string $username Sanitized owner.
 	 * @param string $repo     Sanitized repository.
-	 * @return true|WP_Error
+	 * @return true|\WP_Error
 	 */
 	private static function verify_github_lazy_load_token( $token, $username, $repo ) {
 		$token           = is_string( $token ) ? $token : '';
@@ -3418,7 +3418,7 @@ class Shortcodes {
 	 * Get GitHub card HTML.
 	 *
 	 * @param object $request The request object.
-	 * @return WP_REST_Response|WP_Error The GitHub card HTML, or an error before any remote fetch.
+	 * @return \WP_REST_Response|\WP_Error The GitHub card HTML, or an error before any remote fetch.
 	 */
 	public function get_github_card_html( $request ) {
 		$attributes = $request->get_param( 'cardAttributes' );
@@ -3449,8 +3449,8 @@ class Shortcodes {
 	/**
 	 * REST API callback for getting profile badges HTML.
 	 *
-	 * @param WP_REST_Request $request REST API request object.
-	 * @return WP_REST_Response|WP_Error REST API response.
+	 * @param \WP_REST_Request $request REST API request object.
+	 * @return \WP_REST_Response|\WP_Error REST API response.
 	 */
 	public function get_profile_badges_html( $request ) {
 		// Validate one-time use token.
