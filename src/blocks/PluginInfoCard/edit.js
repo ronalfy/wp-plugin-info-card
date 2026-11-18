@@ -100,14 +100,35 @@ const WPPluginInfoCard = ( props ) => {
 		setNoData( false );
 		setNoDataMessage( '' );
 		const restUrl = wppic.rest_url + 'wppic/v2/get_data';
-		axios
-			.get( restUrl + `?type=${ type }&slug=${ encodeURIComponent( slug ) }`, {
-				headers: {
-					'X-WP-Nonce': wppic.rest_nonce,
+		// The public data route returns at most ten slugs. Request the rest in further batches
+		// so the preview and title controls include every slug saved on the block.
+		const slugParts = String( slug || '' )
+			.split( ',' )
+			.map( ( part ) => part.trim() )
+			.filter( ( part ) => '' !== part );
+		const batches = [];
+		for ( let index = 0; index < slugParts.length; index += 10 ) {
+			batches.push( slugParts.slice( index, index + 10 ) );
+		}
+		if ( 0 === batches.length ) {
+			batches.push( [ String( slug || '' ) ] );
+		}
+
+		Promise.all(
+			batches.map( ( batch ) => axios.get(
+				restUrl + `?type=${ type }&slug=${ encodeURIComponent( batch.join( ',' ) ) }`,
+				{
+					headers: {
+						'X-WP-Nonce': wppic.rest_nonce,
+					},
 				},
-			} )
-			.then( ( response ) => {
-				const cards = Array.isArray( response.data ) ? response.data : [];
+			) ),
+		)
+			.then( ( responses ) => {
+				const cards = responses.reduce( ( collected, response ) => {
+					const batchCards = Array.isArray( response.data ) ? response.data : [];
+					return collected.concat( batchCards );
+				}, [] );
 				if ( cards.length ) {
 					setData( cards );
 					setAttributes( { assetData: cards } );
